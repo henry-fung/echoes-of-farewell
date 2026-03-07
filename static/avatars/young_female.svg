@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="youngFemaleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#880E4F;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EC407A;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- 背景 -->
+  <circle cx="50" cy="50" r="50" fill="url(#youngFemaleGrad)"/>
+  <!-- 头发（长发） -->
+  <ellipse cx="50" cy="36" rx="26" ry="16" fill="#212121"/>
+  <path d="M24 42 Q20 60 22 75" fill="none" stroke="#212121" stroke-width="9" stroke-linecap="round"/>
+  <path d="M76 42 Q80 60 78 75" fill="none" stroke="#212121" stroke-width="9" stroke-linecap="round"/>
+  <!-- 刘海 -->
+  <path d="M35 42 Q40 36 45 42 Q50 36 55 42 Q60 36 65 42" fill="#212121"/>
+  <!-- 耳朵 -->
+  <ellipse cx="22" cy="54" rx="4" ry="5" fill="#FFCCBC"/>
+  <ellipse cx="78" cy="54" rx="4" ry="5" fill="#FFCCBC"/>
+  <!-- 脖子 -->
+  <rect x="44" y="78" width="12" height="9" fill="#FFCCBC"/>
+  <!-- 脸部 -->
+  <ellipse cx="50" cy="56" rx="22" ry="24" fill="#FFCCBC"/>
+  <!-- 眉毛（自然弯眉） -->
+  <path d="M37 49 Q42 47 47 49" fill="none" stroke="#212121" stroke-width="1.8"/>
+  <path d="M53 49 Q58 47 63 49" fill="none" stroke="#212121" stroke-width="1.8"/>
+  <!-- 眼睛（大而有神） -->
+  <ellipse cx="42" cy="54" rx="4" ry="3.5" fill="#3E2723"/>
+  <ellipse cx="58" cy="54" rx="4" ry="3.5" fill="#3E2723"/>
+  <!-- 眼神高光 -->
+  <circle cx="43" cy="53" r="1.2" fill="white"/>
+  <circle cx="59" cy="53" r="1.2" fill="white"/>
+  <!-- 睫毛 -->
+  <path d="M39 51 L38 48.5" stroke="#212121" stroke-width="1"/>
+  <path d="M42 51 L42 48" stroke="#212121" stroke-width="1"/>
+  <path d="M58 51 L58 48" stroke="#212121" stroke-width="1"/>
+  <path d="M61 51 L62 48.5" stroke="#212121" stroke-width="1"/>
+  <!-- 鼻子 -->
+  <path d="M50 56 L48 62 L52 62 Z" fill="#E6A090"/>
+  <!-- 嘴巴（甜美微笑） -->
+  <path d="M43 67 Q50 71 57 67" fill="none" stroke="#E91E63" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- 脸颊红晕 -->
+  <ellipse cx="37" cy="60" rx="4.5" ry="3" fill="#FFCDD2" opacity="0.7"/>
+  <ellipse cx="63" cy="60" rx="4.5" ry="3" fill="#FFCDD2" opacity="0.7"/>
+  <!-- 衣服（圆领 T 恤） -->
+  <path d="M25 90 L40 79 L50 82 L60 79 L75 90" fill="#EC407A"/>
+  <!-- 项链 -->
+  <path d="M42 78 Q50 85 58 78" fill="none" stroke="#FFD700" stroke-width="1.5"/>
+  <circle cx="50" cy="83" r="2" fill="#FFD700"/>
+</svg>

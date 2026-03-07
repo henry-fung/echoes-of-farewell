@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="fatherGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1565C0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#64B5F6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- 背景 -->
+  <circle cx="50" cy="50" r="50" fill="url(#fatherGrad)"/>
+  <!-- 耳朵 -->
+  <ellipse cx="24" cy="52" rx="5" ry="7" fill="#FFCCBC"/>
+  <ellipse cx="76" cy="52" rx="5" ry="7" fill="#FFCCBC"/>
+  <!-- 脖子 -->
+  <rect x="40" y="70" width="20" height="15" fill="#FFCCBC"/>
+  <!-- 头发（短发） -->
+  <path d="M22 45 Q22 22 50 20 Q78 22 78 45 Q78 48 76 50 Q74 35 50 32 Q26 35 24 50 Q22 48 22 45" fill="#212121"/>
+  <path d="M25 35 Q50 28 75 35" fill="none" stroke="#424242" stroke-width="1"/>
+  <!-- 脸部 -->
+  <ellipse cx="50" cy="50" rx="23" ry="25" fill="#FFCCBC"/>
+  <!-- 眼睛 -->
+  <ellipse cx="42" cy="48" rx="4" ry="3.5" fill="#3E2723"/>
+  <ellipse cx="58" cy="48" rx="4" ry="3.5" fill="#3E2723"/>
+  <!-- 眉毛 -->
+  <path d="M37 43 Q42 41 47 43" fill="none" stroke="#212121" stroke-width="2"/>
+  <path d="M53 43 Q58 41 63 43" fill="none" stroke="#212121" stroke-width="2"/>
+  <!-- 鼻子 -->
+  <path d="M50 52 L48 59 L52 59 Z" fill="#E6A090"/>
+  <!-- 嘴巴（稳重微笑） -->
+  <path d="M44 63 Q50 66 56 63" fill="none" stroke="#BF360C" stroke-width="2" stroke-linecap="round"/>
+  <!-- 胡渣 -->
+  <ellipse cx="50" cy="62" rx="10" ry="6" fill="#D7CCC8" opacity="0.3"/>
+  <!-- 衣服（衬衫领子） -->
+  <path d="M25 82 L40 72 L50 78 L60 72 L75 82" fill="#FFFFFF"/>
+  <path d="M40 72 L40 85 M60 72 L60 85" stroke="#1565C0" stroke-width="1"/>
+</svg>

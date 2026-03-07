@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="littleGirlGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#C2185B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F06292;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- 背景 -->
+  <circle cx="50" cy="50" r="50" fill="url(#littleGirlGrad)"/>
+  <!-- 头发（双马尾） -->
+  <ellipse cx="50" cy="38" rx="25" ry="14" fill="#212121"/>
+  <circle cx="25" cy="50" r="10" fill="#212121"/>
+  <circle cx="75" cy="50" r="10" fill="#212121"/>
+  <path d="M25 50 L20 60" stroke="#212121" stroke-width="6" stroke-linecap="round"/>
+  <path d="M75 50 L80 60" stroke="#212121" stroke-width="6" stroke-linecap="round"/>
+  <!-- 刘海 -->
+  <path d="M32 45 Q40 40 50 42 Q60 40 68 45" fill="#212121"/>
+  <!-- 发饰（蝴蝶结） -->
+  <path d="M42 32 L48 38 L50 36 L52 38 L58 32" fill="#E91E63" stroke="#C2185B" stroke-width="1"/>
+  <circle cx="50" cy="37" r="2" fill="#F06292"/>
+  <!-- 耳朵 -->
+  <ellipse cx="22" cy="55" rx="3.5" ry="4.5" fill="#FFCCBC"/>
+  <ellipse cx="78" cy="55" rx="3.5" ry="4.5" fill="#FFCCBC"/>
+  <!-- 脖子 -->
+  <rect x="45" y="78" width="10" height="7" fill="#FFCCBC"/>
+  <!-- 脸部（圆润可爱） -->
+  <ellipse cx="50" cy="58" rx="21" ry="21" fill="#FFCCBC"/>
+  <!-- 眉毛 -->
+  <path d="M39 51 Q42 49 46 51" fill="none" stroke="#212121" stroke-width="1.2"/>
+  <path d="M54 51 Q58 49 61 51" fill="none" stroke="#212121" stroke-width="1.2"/>
+  <!-- 眼睛（大而明亮） -->
+  <ellipse cx="42" cy="56" rx="3.5" ry="3.2" fill="#3E2723"/>
+  <ellipse cx="58" cy="56" rx="3.5" ry="3.2" fill="#3E2723"/>
+  <!-- 眼神高光 -->
+  <circle cx="43" cy="55" r="1.2" fill="white"/>
+  <circle cx="59" cy="55" r="1.2" fill="white"/>
+  <!-- 睫毛 -->
+  <path d="M40 53 L39 51" stroke="#212121" stroke-width="0.8"/>
+  <path d="M60 53 L61 51" stroke="#212121" stroke-width="0.8"/>
+  <!-- 鼻子 -->
+  <circle cx="50" cy="60" r="1.5" fill="#E6A090"/>
+  <!-- 嘴巴（甜美笑容） -->
+  <path d="M44 66 Q50 69 56 66" fill="none" stroke="#E91E63" stroke-width="2" stroke-linecap="round"/>
+  <!-- 脸颊红晕 -->
+  <ellipse cx="36" cy="62" rx="4" ry="2.5" fill="#FFCDD2" opacity="0.7"/>
+  <ellipse cx="64" cy="62" rx="4" ry="2.5" fill="#FFCDD2" opacity="0.7"/>
+  <!-- 衣服（连衣裙） -->
+  <path d="M28 88 L42 78 L50 81 L58 78 L72 88" fill="#F06292"/>
+  <!-- 领口花边 -->
+  <path d="M42 78 Q45 75 48 78 Q50 75 52 78 Q55 75 58 78" fill="none" stroke="#F8BBD0" stroke-width="1"/>
+</svg>

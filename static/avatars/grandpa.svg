@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grandpaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5D4037;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8D6E63;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- 背景 -->
+  <circle cx="50" cy="50" r="50" fill="url(#grandpaGrad)"/>
+  <!-- 耳朵 -->
+  <ellipse cx="22" cy="55" rx="6" ry="8" fill="#FFCCBC"/>
+  <ellipse cx="78" cy="55" rx="6" ry="8" fill="#FFCCBC"/>
+  <!-- 脖子 -->
+  <rect x="38" y="72" width="24" height="15" fill="#FFCCBC"/>
+  <!-- 头发（花白） -->
+  <path d="M20 45 Q20 20 50 18 Q80 20 80 45 Q80 50 78 52 Q75 35 50 32 Q25 35 22 52 Q20 50 20 45" fill="#E0E0E0"/>
+  <path d="M25 40 Q50 25 75 40" fill="none" stroke="#BDBDBD" stroke-width="2"/>
+  <!-- 脸部 -->
+  <ellipse cx="50" cy="52" rx="24" ry="26" fill="#FFCCBC"/>
+  <!-- 皱纹 -->
+  <path d="M35 48 Q40 46 45 48" fill="none" stroke="#D7CCC8" stroke-width="1"/>
+  <path d="M55 48 Q60 46 65 48" fill="none" stroke="#D7CCC8" stroke-width="1"/>
+  <path d="M42 58 Q50 60 58 58" fill="none" stroke="#D7CCC8" stroke-width="1"/>
+  <!-- 眼镜 -->
+  <circle cx="40" cy="48" r="6" fill="none" stroke="#5D4037" stroke-width="1.5"/>
+  <circle cx="60" cy="48" r="6" fill="none" stroke="#5D4037" stroke-width="1.5"/>
+  <line x1="46" y1="48" x2="54" y2="48" stroke="#5D4037" stroke-width="1.5"/>
+  <!-- 眼睛 -->
+  <circle cx="40" cy="48" r="2" fill="#3E2723"/>
+  <circle cx="60" cy="48" r="2" fill="#3E2723"/>
+  <!-- 鼻子 -->
+  <path d="M50 52 L48 60 L52 60 Z" fill="#E6A090"/>
+  <!-- 嘴巴（慈祥微笑） -->
+  <path d="M42 65 Q50 70 58 65" fill="none" stroke="#D84315" stroke-width="2" stroke-linecap="round"/>
+  <!-- 衣服领子 -->
+  <path d="M25 85 L35 75 L50 80 L65 75 L75 85" fill="#455A64"/>
+</svg>

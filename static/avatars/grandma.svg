@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grandmaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#C2185B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F48FB1;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- 背景 -->
+  <circle cx="50" cy="50" r="50" fill="url(#grandmaGrad)"/>
+  <!-- 头发（白色盘发） -->
+  <ellipse cx="50" cy="35" rx="28" ry="20" fill="#F5F5F5"/>
+  <circle cx="30" cy="40" r="10" fill="#F5F5F5"/>
+  <circle cx="70" cy="40" r="10" fill="#F5F5F5"/>
+  <ellipse cx="50" cy="25" rx="15" ry="10" fill="#E0E0E0"/>
+  <!-- 脖子 -->
+  <rect x="40" y="72" width="20" height="12" fill="#FFCCBC"/>
+  <!-- 脸部 -->
+  <ellipse cx="50" cy="54" rx="22" ry="24" fill="#FFCCBC"/>
+  <!-- 皱纹 -->
+  <path d="M38 50 Q42 48 46 50" fill="none" stroke="#D7CCC8" stroke-width="1"/>
+  <path d="M54 50 Q58 48 62 50" fill="none" stroke="#D7CCC8" stroke-width="1"/>
+  <!-- 眼睛（慈祥） -->
+  <ellipse cx="42" cy="52" rx="4" ry="3" fill="#4E342E"/>
+  <ellipse cx="58" cy="52" rx="4" ry="3" fill="#4E342E"/>
+  <!-- 眉毛 -->
+  <path d="M38 46 Q42 44 46 46" fill="none" stroke="#BDBDBD" stroke-width="1.5"/>
+  <path d="M54 46 Q58 44 62 46" fill="none" stroke="#BDBDBD" stroke-width="1.5"/>
+  <!-- 鼻子 -->
+  <path d="M50 55 L49 60 L51 60 Z" fill="#E6A090"/>
+  <!-- 嘴巴（温和微笑） -->
+  <path d="M44 65 Q50 68 56 65" fill="none" stroke="#D84315" stroke-width="2" stroke-linecap="round"/>
+  <!-- 衣服 -->
+  <path d="M25 85 L40 75 L50 78 L60 75 L75 85" fill="#880E4F"/>
+  <!-- 珍珠项链 -->
+  <circle cx="44" cy="75" r="2" fill="#FFF8E1"/>
+  <circle cx="50" cy="77" r="2" fill="#FFF8E1"/>
+  <circle cx="56" cy="75" r="2" fill="#FFF8E1"/>
+</svg>

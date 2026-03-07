@@ -1,0 +1,41 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradientWarm" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F2907B"/>
+      <stop offset="100%" style="stop-color:#E88069"/>
+    </linearGradient>
+    <linearGradient id="gradientCool" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7DB4D6"/>
+      <stop offset="100%" style="stop-color:#6A9FC4"/>
+    </linearGradient>
+    <linearGradient id="gradientMain" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F2907B"/>
+      <stop offset="50%" style="stop-color:#7DB4D6"/>
+      <stop offset="100%" style="stop-color:#F2907B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background (rounded square base) -->
+  <rect width="512" height="512" rx="102" fill="#FAF8F5"/>
+
+  <!-- Echo waves - emanating from center-left, fading to the right -->
+  <!-- Warm solid waves (left side) -->
+  <path d="M180 256 C180 220, 200 190, 230 175" stroke="url(#gradientWarm)" stroke-width="24" stroke-linecap="round" fill="none" opacity="0.9"/>
+  <path d="M165 256 C165 210, 190 170, 230 145" stroke="url(#gradientWarm)" stroke-width="24" stroke-linecap="round" fill="none" opacity="0.85"/>
+  <path d="M150 256 C150 200, 180 150, 230 115" stroke="url(#gradientWarm)" stroke-width="24" stroke-linecap="round" fill="none" opacity="0.8"/>
+  <path d="M135 256 C135 190, 170 130, 230 85" stroke="url(#gradientWarm)" stroke-width="24" stroke-linecap="round" fill="none" opacity="0.75"/>
+
+  <!-- Central wave - gradient from warm to cool -->
+  <path d="M120 256 C120 180, 160 110, 230 55" stroke="url(#gradientMain)" stroke-width="24" stroke-linecap="round" fill="none" opacity="0.7"/>
+
+  <!-- Cool dashed waves (right side - fading echoes) -->
+  <path d="M260 40 C290 85, 310 140, 310 200" stroke="url(#gradientCool)" stroke-width="20" stroke-linecap="round" stroke-dasharray="12 16" fill="none" opacity="0.5"/>
+  <path d="M285 55 C310 105, 330 165, 330 230" stroke="url(#gradientCool)" stroke-width="16" stroke-linecap="round" stroke-dasharray="10 18" fill="none" opacity="0.4"/>
+  <path d="M310 75 C330 125, 350 185, 350 250" stroke="url(#gradientCool)" stroke-width="12" stroke-linecap="round" stroke-dasharray="8 20" fill="none" opacity="0.3"/>
+
+  <!-- Fading dots (rightmost echoes) -->
+  <circle cx="340" cy="100" r="6" fill="#7DB4D6" opacity="0.25"/>
+  <circle cx="365" cy="120" r="5" fill="#7DB4D6" opacity="0.2"/>
+  <circle cx="385" cy="145" r="4" fill="#7DB4D6" opacity="0.15"/>
+  <circle cx="400" cy="175" r="3" fill="#7DB4D6" opacity="0.1"/>
+</svg>

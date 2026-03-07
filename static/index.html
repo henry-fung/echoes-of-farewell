@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#546E7A">
+    <meta name="format-detection" content="telephone=no">
+    <title>Echoes of Farewell - 与思念的人对话</title>
+    <link rel="icon" type="image/svg+xml" href="/static/imgs/icon.svg">
+    <link rel="apple-touch-icon" href="/static/imgs/icon.svg">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Prevent zoom on double tap for iOS -->
+    <style>
+        * { touch-action: manipulation; }
+    </style>
+</head>
+<body>
+    <!-- Login/Register Modal -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <div class="login-logo">
+                <img src="/static/imgs/icon.svg" alt="Echoes of Farewell" class="login-logo-img">
+                <h2>Echoes of Farewell</h2>
+                <p class="subtitle">与思念的人对话 · 数字回声中的告别</p>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('login')">登录</button>
+                <button class="tab-btn" onclick="switchTab('register')">注册</button>
+            </div>
+            
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form">
+                <input type="text" id="loginUsername" placeholder="用户名" required>
+                <input type="password" id="loginPassword" placeholder="密码" required>
+                <button type="submit" class="btn-primary">登录</button>
+                <p class="error-msg" id="loginError"></p>
+            </form>
+            
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form hidden">
+                <input type="text" id="registerUsername" placeholder="用户名 (3-20字符)" required>
+                <input type="password" id="registerPassword" placeholder="密码 (至少6位)" required>
+                <input type="text" id="inviteCode" placeholder="邀请码 (必填)" required>
+                <button type="submit" class="btn-primary">注册</button>
+                <p class="error-msg" id="registerError"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Informed Consent Modal -->
+    <div id="consentModal" class="modal hidden">
+        <div class="modal-content consent-modal">
+            <div class="consent-header">
+                <h2 data-i18n="consent_title">用户数据收集知情同意书</h2>
+                <!-- Language selector in consent modal -->
+                <div class="language-selector-small">
+                    <select id="consentLanguage" onchange="changeUILanguage(this.value)">
+                        <option value="zh-CN">简体中文</option>
+                        <option value="zh-HK">繁體中文（香港）</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+            </div>
+            <div class="consent-content" id="consentContent">
+                <!-- Content will be loaded based on language -->
+            </div>
+            <div class="consent-checkboxes">
+                <label class="consent-checkbox">
+                    <input type="checkbox" id="consentRead">
+                    <span data-i18n="consent_read">我已阅读并理解本同意书的内容</span>
+                </label>
+                <label class="consent-checkbox">
+                    <input type="checkbox" id="consentAgree">
+                    <span data-i18n="consent_agree">我自愿同意本服务收集和使用我的数据</span>
+                </label>
+                <label class="consent-checkbox">
+                    <input type="checkbox" id="consentWithdraw">
+                    <span data-i18n="consent_withdraw">我了解我可以随时撤回我的同意</span>
+                </label>
+            </div>
+            <div class="consent-buttons">
+                <button class="btn-secondary" onclick="logout()" data-i18n="consent_disagree">不同意并退出</button>
+                <button class="btn-primary" id="btnConsentSubmit" onclick="submitConsent()" disabled data-i18n="consent_agree_button">同意并继续</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Survey Modal (Every 5 days) -->
+    <div id="surveyModal" class="modal hidden">
+        <div class="modal-content survey-modal">
+            <div class="survey-header">
+                <h2 data-i18n="survey_title">情感状态调查问卷</h2>
+                <!-- Language selector in survey modal -->
+                <div class="language-selector-small">
+                    <select id="surveyLanguage" onchange="changeUILanguage(this.value)">
+                        <option value="zh-CN">简体中文</option>
+                        <option value="zh-HK">繁體中文（香港）</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+            </div>
+            <p class="survey-desc" data-i18n="survey_desc">为了更好地了解您的状态并提供更合适的陪伴，请花几分钟时间回答以下问题。</p>
+            <form id="surveyForm" class="survey-form">
+                <!-- Question 1 -->
+                <div class="survey-question">
+                    <h3 data-i18n="survey_q1_title">1. 今天整体的心情如何？</h3>
+                    <div class="survey-options">
+                        <label class="survey-option">
+                            <input type="radio" name="q1" value="1" required>
+                            <span data-i18n="survey_q1_a1">非常低落</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q1" value="2">
+                            <span data-i18n="survey_q1_a2">有点低落</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q1" value="3">
+                            <span data-i18n="survey_q1_a3">平静</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q1" value="4">
+                            <span data-i18n="survey_q1_a4">轻微轻松</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q1" value="5">
+                            <span data-i18n="survey_q1_a5">明显好转、开心</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Question 2 -->
+                <div class="survey-question">
+                    <h3 data-i18n="survey_q2_title">2. 你现在想起失去的人/宠物/感情时，情绪强度是？</h3>
+                    <div class="survey-options">
+                        <label class="survey-option">
+                            <input type="radio" name="q2" value="1" required>
+                            <span data-i18n="survey_q2_a1">强烈痛苦、无法控制</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q2" value="2">
+                            <span data-i18n="survey_q2_a2">经常难过、影响生活</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q2" value="3">
+                            <span data-i18n="survey_q2_a3">偶尔难过，但可以承受</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q2" value="4">
+                            <span data-i18n="survey_q2_a4">轻微想念，情绪稳定</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q2" value="5">
+                            <span data-i18n="survey_q2_a5">已经能平静面对</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Question 3 -->
+                <div class="survey-question">
+                    <h3 data-i18n="survey_q3_title">3. 你目前更偏向哪种状态？（双过程模型）</h3>
+                    <div class="survey-options">
+                        <label class="survey-option">
+                            <input type="radio" name="q3" value="1" required>
+                            <span data-i18n="survey_q3_a1">沉浸在回忆与悲伤中</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q3" value="2">
+                            <span data-i18n="survey_q3_a2">多数时间难过，偶尔能转移注意力</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q3" value="3">
+                            <span data-i18n="survey_q3_a3">悲伤与日常状态各占一半</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q3" value="4">
+                            <span data-i18n="survey_q3_a4">更愿意关注生活、向前看</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q3" value="5">
+                            <span data-i18n="survey_q3_a5">已回到正常生活节奏</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Question 4 -->
+                <div class="survey-question">
+                    <h3 data-i18n="survey_q4_title">4. 你觉得自己现在处于情绪恢复的哪个阶段？（五阶段模型）</h3>
+                    <div class="survey-options">
+                        <label class="survey-option">
+                            <input type="radio" name="q4" value="1" required>
+                            <span data-i18n="survey_q4_a1">否认/不愿接受事实</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q4" value="2">
+                            <span data-i18n="survey_q4_a2">愤怒/委屈/不甘心</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q4" value="3">
+                            <span data-i18n="survey_q4_a3">讨价还价/希望挽回</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q4" value="4">
+                            <span data-i18n="survey_q4_a4">低落/空虚/无力</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q4" value="5">
+                            <span data-i18n="survey_q4_a5">接受/慢慢放下</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Question 5 -->
+                <div class="survey-question">
+                    <h3 data-i18n="survey_q5_title">5. 你需要我（AI 陪伴者）保持更亲近，还是慢慢淡出？</h3>
+                    <div class="survey-options">
+                        <label class="survey-option">
+                            <input type="radio" name="q5" value="1" required>
+                            <span data-i18n="survey_q5_a1">需要更亲近陪伴</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q5" value="2">
+                            <span data-i18n="survey_q5_a2">保持现在的亲近度就好</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q5" value="3">
+                            <span data-i18n="survey_q5_a3">可以稍微慢慢淡出</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q5" value="4">
+                            <span data-i18n="survey_q5_a4">可以明显淡出</span>
+                        </label>
+                        <label class="survey-option">
+                            <input type="radio" name="q5" value="5">
+                            <span data-i18n="survey_q5_a5">已不需要太多陪伴</span>
+                        </label>
+                    </div>
+                </div>
+            </form>
+            <div class="survey-buttons">
+                <button class="btn-primary btn-large" onclick="submitSurvey()" data-i18n="survey_submit">提交问卷</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="hidden">
+        <!-- Header -->
+        <header class="header safe-top">
+            <div class="logo">
+                <img src="/static/imgs/icon.svg" alt="Echoes of Farewell" class="logo-icon-img">
+                <span>Echoes of Farewell</span>
+            </div>
+            <div class="user-menu">
+                <!-- 语言选择器 -->
+                <div class="language-selector">
+                    <select id="uiLanguage" onchange="changeUILanguage(this.value)">
+                        <option value="zh-CN">简体中文</option>
+                        <option value="zh-HK">繁體中文（香港）</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <span id="currentUsername"></span>
+                <button onclick="logout()" class="btn-text" data-i18n="logout">退出</button>
+            </div>
+        </header>
+
+        <!-- Mobile Bottom Navigation -->
+        <nav class="mobile-bottom-nav safe-bottom">
+            <div class="nav-items">
+                <button class="nav-item-mobile active" onclick="mobileNavTo('profiles')" data-page="profiles">
+                    <span>👥</span>
+                    <span data-i18n="profiles">亲人</span>
+                </button>
+                <button class="nav-item-mobile" onclick="mobileNavTo('chat')" data-page="chat">
+                    <span>💬</span>
+                    <span data-i18n="chat">对话</span>
+                </button>
+                <button class="nav-item-mobile" onclick="mobileNavTo('settings')" data-page="settings">
+                    <span>⚙️</span>
+                    <span data-i18n="settings">设置</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav class="nav">
+                    <button class="nav-item" id="navProfiles" onclick="showPage('profiles')">
+                        <span>👥</span> <span data-i18n="profiles">亲人档案</span>
+                    </button>
+                    
+                    <!-- 对话菜单标题 -->
+                    <div class="nav-section-title">
+                        <span>💬</span> <span data-i18n="chat">对话</span>
+                    </div>
+                    
+                    <!-- 亲人对话列表 -->
+                    <div id="chatProfilesList" class="chat-profiles-list">
+                        <!-- 动态加载亲人列表 -->
+                    </div>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content">
+                <!-- Profiles List Page -->
+                <div id="profilesPage" class="page">
+                    <div class="profiles-container">
+                        <div class="profiles-header">
+                            <h2 data-i18n="my_loved_ones">我的亲人</h2>
+                            <button onclick="showCreateProfileForm()" class="btn-primary" data-i18n="add_loved_one">+ 添加</button>
+                        </div>
+                        <p class="desc" data-i18n="profiles_desc">选择一位亲人开始对话，或添加新的亲人档案</p>
+                        
+                        <div id="profilesList" class="profiles-list">
+                            <!-- Profiles will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Create/Edit Profile Page -->
+                <div id="profileFormPage" class="page hidden">
+                    <div class="profile-container">
+                        <div class="form-header">
+                            <button onclick="showPage('profiles')" class="btn-back">← <span data-i18n="back">返回</span></button>
+                            <h2 id="profileFormTitle" data-i18n="add_profile">添加亲人</h2>
+                        </div>
+                        
+                        <form id="profileForm" class="profile-form">
+                            <input type="hidden" id="editProfileId">
+
+                            <div class="form-group">
+                                <label data-i18n="name_required">姓名 *</label>
+                                <input type="text" id="profileName" data-i18n-placeholder="name_placeholder" placeholder="亲人的名字" required>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label><span data-i18n="gender">性别</span> <span class="label-hint" data-i18n="gender_hint">选择亲人的性别</span></label>
+                                    <div class="gender-options">
+                                        <label class="gender-option">
+                                            <input type="radio" name="gender" value="male" onchange="filterRelationshipsByGender()">
+                                            <span>👨 男性</span>
+                                        </label>
+                                        <label class="gender-option">
+                                            <input type="radio" name="gender" value="female" onchange="filterRelationshipsByGender()">
+                                            <span>👩 女性</span>
+                                        </label>
+                                        <label class="gender-option">
+                                            <input type="radio" name="gender" value="pet" onchange="filterRelationshipsByGender()">
+                                            <span>🐾 宠物</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label><span data-i18n="age">年龄</span> <span class="label-hint" data-i18n="age_hint">选择亲人的年龄段</span></label>
+                                    <div class="age-options">
+                                        <label class="age-option">
+                                            <input type="radio" name="age" value="child" onchange="filterRelationshipsByGender()">
+                                            <span>👶 儿童</span>
+                                        </label>
+                                        <label class="age-option">
+                                            <input type="radio" name="age" value="young" onchange="filterRelationshipsByGender()">
+                                            <span>🧑 青年</span>
+                                        </label>
+                                        <label class="age-option">
+                                            <input type="radio" name="age" value="middle" onchange="filterRelationshipsByGender()">
+                                            <span>🧑‍🦳 中年</span>
+                                        </label>
+                                        <label class="age-option">
+                                            <input type="radio" name="age" value="elderly" onchange="filterRelationshipsByGender()">
+                                            <span>👴 老年</span>
+                                        </label>
+                                        <label class="age-option">
+                                            <input type="radio" name="age" value="baby" onchange="filterRelationshipsByGender()">
+                                            <span>🍼 婴儿</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label><span data-i18n="relationship">关系</span> <span class="label-hint" data-i18n="relationship_hint">选择与您的关系</span></label>
+                                <div class="relationship-options">
+                                    <select id="profileRelationship" onchange="handleRelationshipChange(this)">
+                                        <option value="">请先选择性别和年龄...</option>
+                                        <optgroup label="长辈" class="rel-elderly">
+                                            <option value="grandfather" data-gender="male">爷爷</option>
+                                            <option value="grandmother" data-gender="female">奶奶</option>
+                                            <option value="maternal_grandfather" data-gender="male">外公</option>
+                                            <option value="maternal_grandmother" data-gender="female">外婆</option>
+                                        </optgroup>
+                                        <optgroup label="父母" class="rel-middle">
+                                            <option value="father" data-gender="male">父亲</option>
+                                            <option value="mother" data-gender="female">母亲</option>
+                                        </optgroup>
+                                        <optgroup label="子女" class="rel-child">
+                                            <option value="son" data-gender="male">儿子</option>
+                                            <option value="daughter" data-gender="female">女儿</option>
+                                        </optgroup>
+                                        <optgroup label="伴侣" class="rel-young">
+                                            <option value="boyfriend" data-gender="male">男朋友</option>
+                                            <option value="girlfriend" data-gender="female">女朋友</option>
+                                            <option value="husband" data-gender="male">丈夫</option>
+                                            <option value="wife" data-gender="female">妻子</option>
+                                        </optgroup>
+                                        <optgroup label="宠物" class="rel-pet">
+                                            <option value="cat" data-gender="pet">猫</option>
+                                            <option value="dog" data-gender="pet">狗</option>
+                                        </optgroup>
+                                        <optgroup label="其他" class="rel-other">
+                                            <option value="elderly_male" data-gender="male" data-age="elderly">老年男性</option>
+                                            <option value="elderly_female" data-gender="female" data-age="elderly">老年女性</option>
+                                            <option value="middle_aged_male" data-gender="male" data-age="middle">中年男性</option>
+                                            <option value="middle_aged_female" data-gender="female" data-age="middle">中年女性</option>
+                                            <option value="young_male" data-gender="male" data-age="young">年轻男性</option>
+                                            <option value="young_female" data-gender="female" data-age="young">年轻女性</option>
+                                            <option value="little_boy" data-gender="male" data-age="child">小男孩</option>
+                                            <option value="little_girl" data-gender="female" data-age="child">小女孩</option>
+                                            <option value="baby" data-gender="baby" data-age="baby">婴儿</option>
+                                        </optgroup>
+                                        <option value="custom">自定义...</option>
+                                    </select>
+                                    <input type="text" id="customRelationship" class="hidden" placeholder="请输入自定义关系">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><span data-i18n="language">语言</span> <span class="label-hint" data-i18n="language_hint">选择亲人常用的语言</span></label>
+                                <div class="language-options">
+                                    <label class="language-option">
+                                        <input type="radio" name="language" value="zh-CN" checked>
+                                        <span class="lang-name">简体中文</span>
+                                        <span class="lang-code">zh-CN</span>
+                                    </label>
+                                    <label class="language-option">
+                                        <input type="radio" name="language" value="zh-HK">
+                                        <span class="lang-name">繁体中文（香港）</span>
+                                        <span class="lang-code">zh-HK</span>
+                                    </label>
+                                    <label class="language-option">
+                                        <input type="radio" name="language" value="en-US">
+                                        <span class="lang-name">英文</span>
+                                        <span class="lang-code">en</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>性格描述</label>
+                                <textarea 
+                                    id="profilePersonality" 
+                                    rows="3"
+                                    placeholder="例如：温和、幽默、喜欢关心人、说话简洁..."
+                                ></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="chat-history-header">
+                                    <label>聊天记录</label>
+                                    <div class="chat-history-actions">
+                                        <input type="file" id="chatImageUpload" accept="image/*" multiple hidden onchange="uploadChatImages(this)">
+                                        <button type="button" class="btn-upload-image" onclick="document.getElementById('chatImageUpload').click()">
+                                            <span>📷</span> 从图片提取
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="imageExtractStatus" class="extract-status hidden"></div>
+                                <textarea 
+                                    id="profileChatHistory" 
+                                    rows="6"
+                                    placeholder="粘贴真实的聊天记录，或上传聊天记录截图，AI 会自动提取并学习亲人的语言风格、用词习惯、表情使用等...&#10;&#10;格式示例：&#10;亲人：吃饭了吗？&#10;我：刚吃完&#10;亲人：多吃点，别饿着"
+                                ></textarea>
+                                <span class="hint">聊天记录越多，AI 模仿得越像</span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><span data-i18n="avatar">头像</span> <span class="label-hint" data-i18n="avatar_hint">选择一位亲人的形象</span></label>
+                                <div class="avatar-section">
+                                    <div class="avatar-options">
+                                        <!-- 长辈组 -->
+                                        <div class="avatar-option" data-avatar="/static/avatars/grandpa.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/grandpa.svg" alt="爷爷">
+                                            <span class="avatar-label">爷爷</span>
+                                        </div>
+                                        <div class="avatar-option" data-avatar="/static/avatars/grandma.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/grandma.svg" alt="奶奶">
+                                            <span class="avatar-label">奶奶</span>
+                                        </div>
+                                        <div class="avatar-option" data-avatar="/static/avatars/elderly_male.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/elderly_male.svg" alt="老年男性">
+                                            <span class="avatar-label">老年男性</span>
+                                        </div>
+                                        <div class="avatar-option" data-avatar="/static/avatars/elderly_female.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/elderly_female.svg" alt="老年女性">
+                                            <span class="avatar-label">老年女性</span>
+                                        </div>
+                                        <!-- 中年组 -->
+                                        <div class="avatar-option" data-avatar="/static/avatars/father.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/father.svg" alt="父亲">
+                                            <span class="avatar-label">父亲</span>
+                                        </div>
+                                        <div class="avatar-option" data-avatar="/static/avatars/mother.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/mother.svg" alt="母亲">
+                                            <span class="avatar-label">母亲</span>
+                                        </div>
+                                        <div class="avatar-option" data-avatar="/static/avatars/middle_aged_male.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/middle_aged_male.svg" alt="中年男性">
+                                            <span class="avatar-label">中年男性</span>
+                                        </div>
+                                        <div class="avatar-option" data-avatar="/static/avatars/middle_aged_female.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/middle_aged_female.svg" alt="中年女性">
+                                            <span class="avatar-label">中年女性</span>
+                                        </div>
+                                        <!-- 年轻组 -->
+                                        <div class="avatar-option" data-avatar="/static/avatars/son.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/son.svg" alt="儿子">
+                                            <span class="avatar-label">儿子</span>
+                                        </div>
+                                        <div class="avatar-option" data-avatar="/static/avatars/daughter.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/daughter.svg" alt="女儿">
+                                            <span class="avatar-label">女儿</span>
+                                        </div>
+                                        <div class="avatar-option" data-avatar="/static/avatars/young_male.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/young_male.svg" alt="年轻男性">
+                                            <span class="avatar-label">年轻男性</span>
+                                        </div>
+                                        <div class="avatar-option" data-avatar="/static/avatars/young_female.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/young_female.svg" alt="年轻女性">
+                                            <span class="avatar-label">年轻女性</span>
+                                        </div>
+                                        <!-- 儿童组 -->
+                                        <div class="avatar-option" data-avatar="/static/avatars/little_boy.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/little_boy.svg" alt="小男孩">
+                                            <span class="avatar-label">小男孩</span>
+                                        </div>
+                                        <div class="avatar-option" data-avatar="/static/avatars/little_girl.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/little_girl.svg" alt="小女孩">
+                                            <span class="avatar-label">小女孩</span>
+                                        </div>
+                                        <div class="avatar-option" data-avatar="/static/avatars/baby.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/baby.svg" alt="婴儿">
+                                            <span class="avatar-label">婴儿</span>
+                                        </div>
+                                        <!-- 宠物组 -->
+                                        <div class="avatar-option" data-avatar="/static/avatars/cat.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/cat.svg" alt="猫">
+                                            <span class="avatar-label">猫</span>
+                                        </div>
+                                        <div class="avatar-option" data-avatar="/static/avatars/dog.svg" onclick="selectAvatar(this)">
+                                            <img src="/static/avatars/dog.svg" alt="狗">
+                                            <span class="avatar-label">狗</span>
+                                        </div>
+                                        <div class="avatar-option custom" onclick="document.getElementById('profilePhoto').click()">
+                                            <span>+</span>
+                                            <p>自定义照片</p>
+                                        </div>
+                                        <input type="file" id="profilePhoto" accept="image/*" hidden onchange="previewCustomPhoto(event)">
+                                        <input type="hidden" id="selectedAvatar" value="">
+                                    </div>
+                                    <div id="customPhotoPreview" class="custom-photo-preview hidden">
+                                        <img id="customPhotoImg" src="" alt="自定义照片">
+                                        <button type="button" class="btn-remove-photo" onclick="removeCustomPhoto()">×</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" onclick="showPage('profiles')" class="btn-secondary">取消</button>
+                                <button type="submit" class="btn-primary btn-large">保存</button>
+                            </div>
+                            <p class="success-msg" id="profileSuccess"></p>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Chat Page -->
+                <div id="chatPage" class="page hidden">
+                    <div class="chat-container">
+                        <!-- Chat Interface -->
+                        <div id="chatInterface" class="chat-interface">
+                            <div class="chat-header">
+                                <button onclick="showPage('profiles')" class="btn-back">← <span data-i18n="profiles">亲人档案</span></button>
+                                <div class="profile-header-center">
+                                    <img id="chatAvatar" src="" alt="头像" class="avatar-small">
+                                    <div class="profile-info">
+                                        <h3 id="chatName"></h3>
+                                        <span class="status" data-i18n="online">在线</span>
+                                    </div>
+                                </div>
+                                <div class="chat-actions">
+                                    <button onclick="toggleEmotionPanel()" class="btn-text-small" id="emotionToggle" data-i18n="emotion_state">情感状态</button>
+                                    <button onclick="clearCurrentChat()" class="btn-text-small" data-i18n="clear_history">清空记录</button>
+                                </div>
+                            </div>
+                            
+                            <!-- 情感状态面板 -->
+                            <div id="emotionPanel" class="emotion-panel hidden">
+                                <div class="emotion-header">
+                                    <span>💝 渐进式衰减状态</span>
+                                    <button onclick="toggleEmotionPanel()" class="btn-close">×</button>
+                                </div>
+                                <div class="emotion-content">
+                                    <div class="emotion-row">
+                                        <div class="emotion-item">
+                                            <label>心情指数</label>
+                                            <div class="mood-bar">
+                                                <div id="moodBarFill" class="mood-fill" style="width: 80%"></div>
+                                                <span id="moodValue">80/100</span>
+                                            </div>
+                                        </div>
+                                        <div class="emotion-item">
+                                            <label>衰减率</label>
+                                            <span id="decayRate" class="value">0.0300</span>
+                                        </div>
+                                    </div>
+                                    <div class="emotion-row">
+                                        <div class="emotion-item">
+                                            <label>五阶段</label>
+                                            <span id="dominantStage" class="stage-badge">否认</span>
+                                        </div>
+                                        <div class="emotion-item">
+                                            <label>恢复阶段</label>
+                                            <span id="recoveryPhase" class="phase-badge">急性悲伤期</span>
+                                        </div>
+                                    </div>
+                                    <div class="emotion-row">
+                                        <div class="emotion-item">
+                                            <label>记忆权重</label>
+                                            <div class="weight-bar">
+                                                <span>亲密</span>
+                                                <div class="weight-fill">
+                                                    <div id="memoryWeightFill" style="width: 80%"></div>
+                                                </div>
+                                                <span>支持</span>
+                                            </div>
+                                        </div>
+                                        <div class="emotion-item">
+                                            <label>稳定度</label>
+                                            <span id="stabilityValue" class="value">0.50</span>
+                                        </div>
+                                    </div>
+                                    <div class="emotion-row">
+                                        <div class="emotion-item">
+                                            <label>交互次数</label>
+                                            <span id="interactionCount" class="value">0</span>
+                                        </div>
+                                        <div class="emotion-item">
+                                            <label>下次主动</label>
+                                            <span id="nextProactive" class="value">--</span>
+                                        </div>
+                                    </div>
+                                    <div id="safetyAlert" class="safety-alert hidden">
+                                        <span>⚠️ </span><span id="safetyAlertText"></span>
+                                    </div>
+                                    <div class="stage-probs">
+                                        <label>五阶段分布</label>
+                                        <div class="prob-bars">
+                                            <div class="prob-bar">
+                                                <span>否认</span>
+                                                <div class="prob-fill"><div id="probDenial" style="width: 20%"></div></div>
+                                            </div>
+                                            <div class="prob-bar">
+                                                <span>愤怒</span>
+                                                <div class="prob-fill"><div id="probAnger" style="width: 20%"></div></div>
+                                            </div>
+                                            <div class="prob-bar">
+                                                <span>讨价还价</span>
+                                                <div class="prob-fill"><div id="probBargaining" style="width: 20%"></div></div>
+                                            </div>
+                                            <div class="prob-bar">
+                                                <span>抑郁</span>
+                                                <div class="prob-fill"><div id="probDepression" style="width: 20%"></div></div>
+                                            </div>
+                                            <div class="prob-bar">
+                                                <span>接受</span>
+                                                <div class="prob-fill"><div id="probAcceptance" style="width: 20%"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="chatMessages" class="chat-messages"></div>
+                            
+                            <div class="chat-input-area">
+                                <textarea 
+                                    id="messageInput" 
+                                    data-i18n-placeholder="type_message"
+                                    placeholder="想说什么..."
+                                    rows="1"
+                                ></textarea>
+                                <button id="sendButton" class="btn-send">
+                                    <span data-i18n="send">发送</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

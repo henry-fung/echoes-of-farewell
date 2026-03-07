@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="babyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FBC02D;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFD54F;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- 背景 -->
+  <circle cx="50" cy="50" r="50" fill="url(#babyGrad)"/>
+  <!-- 耳朵 -->
+  <ellipse cx="24" cy="58" rx="3.5" ry="4" fill="#FFCCBC"/>
+  <ellipse cx="76" cy="58" rx="3.5" ry="4" fill="#FFCCBC"/>
+  <!-- 脖子 -->
+  <rect x="46" y="80" width="8" height="6" fill="#FFCCBC"/>
+  <!-- 头发（稀疏胎毛） -->
+  <ellipse cx="50" cy="40" rx="22" ry="12" fill="#8D6E63" opacity="0.6"/>
+  <path d="M35 42 L38 38 L40 42" fill="none" stroke="#8D6E63" stroke-width="1.5" opacity="0.5"/>
+  <path d="M45 40 L47 36 L50 40" fill="none" stroke="#8D6E63" stroke-width="1.5" opacity="0.5"/>
+  <path d="M55 40 L58 36 L60 40" fill="none" stroke="#8D6E63" stroke-width="1.5" opacity="0.5"/>
+  <path d="M62 42 L65 38 L67 42" fill="none" stroke="#8D6E63" stroke-width="1.5" opacity="0.5"/>
+  <!-- 囟门 -->
+  <ellipse cx="50" cy="36" rx="6" ry="4" fill="#FFCCBC" opacity="0.8"/>
+  <!-- 脸部（非常圆润） -->
+  <ellipse cx="50" cy="60" rx="24" ry="22" fill="#FFCCBC"/>
+  <!-- 眉毛（淡淡的） -->
+  <path d="M40 52 Q43 51 46 52" fill="none" stroke="#BDBDBD" stroke-width="1"/>
+  <path d="M54 52 Q57 51 60 52" fill="none" stroke="#BDBDBD" stroke-width="1"/>
+  <!-- 眼睛（天真无邪） -->
+  <ellipse cx="42" cy="58" rx="4" ry="3.5" fill="#5D4037"/>
+  <ellipse cx="58" cy="58" rx="4" ry="3.5" fill="#5D4037"/>
+  <!-- 眼神高光（大） -->
+  <circle cx="43" cy="57" r="1.5" fill="white"/>
+  <circle cx="59" cy="57" r="1.5" fill="white"/>
+  <!-- 鼻子（很小） -->
+  <circle cx="50" cy="63" r="1.5" fill="#E6A090"/>
+  <!-- 嘴巴（嘟嘟嘴） -->
+  <ellipse cx="50" cy="69" rx="4" ry="2.5" fill="#E57373"/>
+  <path d="M46 68 Q50 70 54 68" fill="none" stroke="#D84315" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- 脸颊红晕（明显） -->
+  <ellipse cx="34" cy="64" rx="5" ry="3" fill="#FFCDD2" opacity="0.8"/>
+  <ellipse cx="66" cy="64" rx="5" ry="3" fill="#FFCDD2" opacity="0.8"/>
+  <!-- 下巴（双下巴） -->
+  <path d="M42 74 Q50 77 58 74" fill="none" stroke="#E0C0B0" stroke-width="1"/>
+  <!-- 衣服（婴儿服） -->
+  <path d="M30 88 L44 80 L50 82 L56 80 L70 88" fill="#81C784"/>
+  <!-- 围嘴 -->
+  <path d="M44 80 Q50 90 56 80" fill="#FFF9C4" stroke="#FBC02D" stroke-width="1"/>
+  <circle cx="50" cy="84" r="2" fill="#E53935"/>
+</svg>

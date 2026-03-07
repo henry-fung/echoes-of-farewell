@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="elderlyFemaleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#880E4F;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EC407A;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- 背景 -->
+  <circle cx="50" cy="50" r="50" fill="url(#elderlyFemaleGrad)"/>
+  <!-- 头发（灰色盘发） -->
+  <ellipse cx="50" cy="38" rx="26" ry="18" fill="#E0E0E0"/>
+  <circle cx="28" cy="45" r="8" fill="#E0E0E0"/>
+  <circle cx="72" cy="45" r="8" fill="#E0E0E0"/>
+  <!-- 耳朵 -->
+  <ellipse cx="22" cy="56" rx="4" ry="6" fill="#FFCCBC"/>
+  <ellipse cx="78" cy="56" rx="4" ry="6" fill="#FFCCBC"/>
+  <!-- 脖子 -->
+  <rect x="42" y="76" width="16" height="10" fill="#FFCCBC"/>
+  <!-- 脸部 -->
+  <ellipse cx="50" cy="56" rx="22" ry="24" fill="#FFCCBC"/>
+  <!-- 额头皱纹 -->
+  <path d="M40 44 Q50 42 60 44" fill="none" stroke="#D7CCC8" stroke-width="1"/>
+  <!-- 眼角皱纹 -->
+  <path d="M36 52 Q34 54 36 56" fill="none" stroke="#D7CCC8" stroke-width="1"/>
+  <path d="M64 52 Q66 54 64 56" fill="none" stroke="#D7CCC8" stroke-width="1"/>
+  <!-- 眉毛（淡灰色） -->
+  <path d="M38 48 Q42 46 47 48" fill="none" stroke="#BDBDBD" stroke-width="1.5"/>
+  <path d="M53 48 Q58 46 62 48" fill="none" stroke="#BDBDBD" stroke-width="1.5"/>
+  <!-- 眼睛（温和） -->
+  <ellipse cx="42" cy="53" rx="3.5" ry="2.5" fill="#4E342E"/>
+  <ellipse cx="58" cy="53" rx="3.5" ry="2.5" fill="#4E342E"/>
+  <!-- 鼻子 -->
+  <path d="M50 56 L48 62 L52 62 Z" fill="#E6A090"/>
+  <!-- 嘴巴（温和微笑） -->
+  <path d="M43 66 Q50 69 57 66" fill="none" stroke="#D84315" stroke-width="2" stroke-linecap="round"/>
+  <!-- 脸颊红晕 -->
+  <ellipse cx="38" cy="60" rx="4" ry="2" fill="#FFCDD2" opacity="0.5"/>
+  <ellipse cx="62" cy="60" rx="4" ry="2" fill="#FFCDD2" opacity="0.5"/>
+  <!-- 衣服 -->
+  <path d="M25 90 L40 78 L50 80 L60 78 L75 90" fill="#AD1457"/>
+  <!-- 项链 -->
+  <circle cx="45" cy="78" r="2" fill="#FFEB3B"/>
+  <circle cx="50" cy="80" r="2.5" fill="#FFEB3B"/>
+  <circle cx="55" cy="78" r="2" fill="#FFEB3B"/>
+</svg>
