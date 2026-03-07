@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: echoes-of-farewell
+    env: python
+    region: singapore
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: LLM_PROVIDER
+        value: kimi
+      - key: KIMI_BASE_URL
+        value: https://api.moonshot.cn/v1
+      - key: KIMI_MODEL
+        value: moonshot-v1-8k
+      - key: DATABASE_URL
+        fromDatabase:
+          name: echoes-db
+          property: connectionString
+    disk:
+      name: uploads-data
+      mountPath: /opt/render/project/src/static/uploads
+      sizeGB: 1
+databases:
+  - name: echoes-db
+    databaseName: echoes
+    user: echoes_user
+    ipAllowList: []
