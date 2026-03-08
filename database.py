@@ -880,7 +880,7 @@ def create_or_update_emotional_state(
                         stage_denial, stage_anger, stage_bargaining, stage_depression, stage_acceptance,
                         stability_score, risk_level, negative_streak, total_interactions,
                         next_proactive_time
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     user_id, profile_id, mood_index, decay_rate, dominant_stage,
                     recovery_phase, memory_intimacy_weight, strong_negative_events, 1 if allow_proactive else 0,
