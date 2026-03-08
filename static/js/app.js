@@ -974,14 +974,23 @@ function filterRelationshipsByGender() {
     });
 
     // Hide empty optgroups
-    Array.from(select.querySelectorAll('optgroup')).forEach(optgroup => {
-        const visibleOptions = Array.from(optgroup.options).some(opt => !opt.disabled);
-        if (!visibleOptions && optgroup.className !== 'rel-other') {
+    const optgroups = select.querySelectorAll('optgroup');
+    for (let i = 0; i < optgroups.length; i++) {
+        const optgroup = optgroups[i];
+        const options = optgroup.options || optgroup.querySelectorAll('option');
+        let hasVisible = false;
+        for (let j = 0; j < options.length; j++) {
+            if (!options[j].disabled) {
+                hasVisible = true;
+                break;
+            }
+        }
+        if (!hasVisible && optgroup.className !== 'rel-other') {
             optgroup.disabled = true;
         } else {
             optgroup.disabled = false;
         }
-    });
+    }
 
     // Reset current selection if it's now disabled
     if (select.value && select.selectedOptions[0] && select.selectedOptions[0].disabled) {
