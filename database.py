@@ -17,9 +17,10 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 USE_POSTGRES = DATABASE_URL is not None
 
 if USE_POSTGRES:
-    import psycopg
+    import psycopg2
 else:
     import sqlite3
+
 
 # Use persistent disk on Render for SQLite
 DATABASE_FILE = os.getenv("SQLITE_DB_PATH", "memorial_chat.db")
@@ -38,11 +39,11 @@ def get_db():
         query_params = parse_qs(parsed.query)
         ssl_mode = query_params.get('sslmode', ['require'])[0]
 
-        # Build connection with SSL for Neon (psycopg 3.x)
-        conn = psycopg.connect(
+        # Build connection with SSL for Neon (psycopg2)
+        conn = psycopg2.connect(
             host=parsed.hostname,
             port=parsed.port or 5432,
-            dbname=parsed.path.lstrip('/'),
+            database=parsed.path.lstrip('/'),
             user=parsed.username,
             password=parsed.password,
             sslmode=ssl_mode
