@@ -33,8 +33,5 @@ Thumbs.db
 # Logs
 *.log
 
-# Invites (sensitive)
-invite_codes.csv
-
 # Memory
 .claude/
