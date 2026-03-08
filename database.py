@@ -17,7 +17,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 USE_POSTGRES = DATABASE_URL is not None
 
 if USE_POSTGRES:
-    import psycopg2
+    import psycopg
 else:
     import sqlite3
 
@@ -38,15 +38,14 @@ def get_db():
         query_params = parse_qs(parsed.query)
         ssl_mode = query_params.get('sslmode', ['require'])[0]
 
-        # Build connection with SSL for Neon
-        conn = psycopg2.connect(
+        # Build connection with SSL for Neon (psycopg 3.x)
+        conn = psycopg.connect(
             host=parsed.hostname,
             port=parsed.port or 5432,
-            database=parsed.path.lstrip('/'),
+            dbname=parsed.path.lstrip('/'),
             user=parsed.username,
             password=parsed.password,
-            sslmode=ssl_mode,
-            sslrequire=True
+            sslmode=ssl_mode
         )
         try:
             yield conn
