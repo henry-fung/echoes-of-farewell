@@ -72,7 +72,13 @@ INVITE_CODES_TO_IMPORT = load_invite_codes_from_csv()
 def _import_invite_codes():
     """Import pre-generated invite codes into database on startup."""
     try:
-        from database import get_db, USE_POSTGRES
+        from database import get_db, USE_POSTGRES, DATABASE_URL
+
+        # Log database info
+        if USE_POSTGRES:
+            print(f"[STARTUP] Using PostgreSQL: {DATABASE_URL[:50]}...")
+        else:
+            print(f"[STARTUP] Using SQLite (DATABASE_URL not set)")
 
         with get_db() as db:
             # Get existing codes
