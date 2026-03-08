@@ -9,6 +9,7 @@ import asyncio
 from pathlib import Path
 from typing import Optional, List
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Form, UploadFile, File, HTTPException, Depends, Request, Query
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
@@ -32,8 +33,19 @@ from llm_provider import LLMProvider, LLMFactory
 from emotion_engine import emotion_engine, EmotionState
 import base64
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for startup and shutdown."""
+    # Startup
+    asyncio.create_task(proactive_check_loop())
+    print("[STARTUP] Proactive check loop started")
+    yield
+    # Shutdown (nothing to do here)
+
+
 # App configuration
-app = FastAPI(title="MemorialChat", version="2.1.0")
+app = FastAPI(title="MemorialChat", version="2.1.0", lifespan=lifespan)
 
 # Static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -1717,14 +1729,6 @@ async def proactive_check_loop():
             print(f"[PROACTIVE LOOP ERROR] {e}")
 
 
-@app.on_event("startup")
-async def startup_event():
-    """启动时初始化"""
-    # 启动主动发起检查循环
-    asyncio.create_task(proactive_check_loop())
-    print("[STARTUP] Proactive check loop started")
-
-
-# if __name__ == "__main__":
-#     import uvicorn
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
