@@ -257,6 +257,80 @@ def _fetch_one_dict(cursor, row):
 
 # ============== User Operations ==============
 
+def register_user_with_invite_code(username: str, password: str, invite_code: str) -> Optional[int]:
+    """Register user and mark invite code as used in a single transaction.
+
+    Returns user_id if successful, None otherwise.
+    Raises ValueError if invite code is invalid or already used.
+    """
+    password_hash, salt = hash_password(password)
+    invite_code = invite_code.upper()
+
+    with get_db() as db:
+        if USE_POSTGRES:
+            cursor = db.cursor()
+
+            # 1. Check if invite code exists and is unused
+            cursor.execute(
+                "SELECT is_used FROM invite_codes WHERE code = %s FOR UPDATE",
+                (invite_code,)
+            )
+            row = cursor.fetchone()
+
+            if row is None:
+                cursor.close()
+                raise ValueError("Invalid invite code")
+            if row[0] is True or row[0] == 1:
+                cursor.close()
+                raise ValueError("Invite code already used")
+
+            # 2. Create user
+            cursor.execute(
+                "INSERT INTO users (username, password_hash, salt) VALUES (%s, %s, %s) RETURNING id",
+                (username, password_hash, salt)
+            )
+            user_id = cursor.fetchone()[0]
+
+            # 3. Mark invite code as used
+            cursor.execute(
+                "UPDATE invite_codes SET is_used = 1, used_by = %s, used_at = CURRENT_TIMESTAMP WHERE code = %s",
+                (username, invite_code)
+            )
+
+            # 4. Commit transaction
+            db.commit()
+            cursor.close()
+            return user_id
+        else:
+            # 1. Check if invite code exists and is unused
+            row = db.execute(
+                "SELECT is_used FROM invite_codes WHERE code = ?",
+                (invite_code,)
+            ).fetchone()
+
+            if row is None:
+                raise ValueError("Invalid invite code")
+            if row['is_used'] == 1:
+                raise ValueError("Invite code already used")
+
+            # 2. Create user
+            cursor = db.execute(
+                "INSERT INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
+                (username, password_hash, salt)
+            )
+            user_id = cursor.lastrowid
+
+            # 3. Mark invite code as used
+            db.execute(
+                "UPDATE invite_codes SET is_used = 1, used_by = ?, used_at = CURRENT_TIMESTAMP WHERE code = ?",
+                (username, invite_code)
+            )
+
+            # 4. Commit transaction
+            db.commit()
+            return user_id
+
+
 def create_user(username: str, password: str) -> Optional[int]:
     """Create a new user. Returns user_id or None if username exists."""
     password_hash, salt = hash_password(password)

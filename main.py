@@ -30,7 +30,7 @@ from database import (
     get_emotional_history, add_message_with_emotion,
     get_user_consent, update_user_consent,
     get_last_survey_date, submit_survey,
-    verify_invite_code, use_invite_code
+    verify_invite_code, use_invite_code, register_user_with_invite_code
 )
 from llm_provider import LLMProvider, LLMFactory
 from emotion_engine import emotion_engine, EmotionState
@@ -269,27 +269,16 @@ async def register(data: UserRegister):
         if len(data.password) < 6:
             raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
-        # Verify invite code first
-        print(f"[REGISTER] Verifying invite code: {data.invite_code}")
-        if not verify_invite_code(data.invite_code):
-            print(f"[REGISTER] Invite code verification failed: {data.invite_code}")
-            raise HTTPException(status_code=400, detail="Invalid or already used invite code")
-        print(f"[REGISTER] Invite code verified successfully")
-
-        print(f"[REGISTER] Creating user: {data.username}")
-        user_id = create_user(data.username, data.password)
-        if user_id is None:
-            print(f"[REGISTER] User creation failed - username exists: {data.username}")
-            raise HTTPException(status_code=400, detail="Username already exists")
-        print(f"[REGISTER] User created with ID: {user_id}")
-
-        # Mark invite code as used
-        print(f"[REGISTER] Marking invite code as used: {data.invite_code}")
-        use_invite_code(data.invite_code, data.username)
-        print(f"[REGISTER] Registration completed successfully")
+        # Register user with invite code (atomic transaction)
+        print(f"[REGISTER] Registering user: {data.username} with invite code: {data.invite_code}")
+        user_id = register_user_with_invite_code(data.username, data.password, data.invite_code)
+        print(f"[REGISTER] User registered with ID: {user_id}")
 
         token = create_token(user_id)
         return {"success": True, "token": token, "username": data.username}
+    except ValueError as e:
+        print(f"[REGISTER] Registration failed: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
