@@ -5,12 +5,12 @@ Run this script to initialize/create database tables and import invite codes.
 """
 import os
 import sys
-import csv
 
 # Import database module
-from database import init_db, USE_POSTGRES, generate_invite_code, get_all_invite_codes
+from database import init_db, USE_POSTGRES, get_all_invite_codes
 
-# Pre-generated invite codes to import
+
+# Pre-generated invite codes to import (100 codes)
 INVITE_CODES_TO_IMPORT = [
     "INV-7B27D1D4", "INV-9E14D1B4", "INV-FF35EDFE", "INV-5F8C913E", "INV-E85E9345",
     "INV-F4E06EEA", "INV-8F5CA6F4", "INV-52EB1924", "INV-CFA2633B", "INV-FD489E26",
@@ -36,51 +36,94 @@ INVITE_CODES_TO_IMPORT = [
 ]
 
 
-def import_invite_codes():
-    """Import pre-generated invite codes into the database."""
-    print("Importing invite codes...")
+def import_invite_codes_direct():
+    """Directly insert invite codes into PostgreSQL/SQLite."""
+    from database import get_db, DATABASE_URL
 
-    # Check existing codes
-    existing = get_all_invite_codes()
-    existing_codes = {c['code'] for c in existing}
-    print(f"Existing codes in database: {len(existing_codes)}")
+    print(f"Database type: {'PostgreSQL' if DATABASE_URL else 'SQLite'}")
+    print(f"Importing {len(INVITE_CODES_TO_IMPORT)} invite codes...")
 
-    imported_count = 0
-    for code in INVITE_CODES_TO_IMPORT:
-        if code in existing_codes:
-            continue
-        try:
-            generate_invite_code('import')
-            imported_count += 1
-        except Exception as e:
-            print(f"  Failed to import {code}: {e}")
+    with get_db() as db:
+        # Get existing codes
+        if DATABASE_URL:
+            cursor = db.cursor()
+            cursor.execute("SELECT code FROM invite_codes")
+            existing_codes = {row[0] for row in cursor.fetchall()}
+            cursor.close()
+        else:
+            import sqlite3
+            existing_codes = {row['code'] for row in db.execute("SELECT code FROM invite_codes").fetchall()}
 
-    print(f"Imported {imported_count} new invite codes")
+        print(f"Existing codes in database: {len(existing_codes)}")
+
+        imported_count = 0
+        skipped_count = 0
+
+        for code in INVITE_CODES_TO_IMPORT:
+            if code in existing_codes:
+                skipped_count += 1
+                continue
+
+            try:
+                if DATABASE_URL:
+                    # PostgreSQL
+                    cursor = db.cursor()
+                    cursor.execute("""
+                        INSERT INTO invite_codes (code, created_by, is_used)
+                        VALUES (%s, %s, 0)
+                        ON CONFLICT (code) DO NOTHING
+                    """, (code, 'import'))
+                    cursor.close()
+                else:
+                    # SQLite
+                    db.execute("""
+                        INSERT OR IGNORE INTO invite_codes (code, created_by, is_used)
+                        VALUES (?, ?, 0)
+                    """, (code, 'import'))
+
+                imported_count += 1
+            except Exception as e:
+                print(f"  Failed to import {code}: {e}")
+
+        db.commit()
+
+    print(f"Imported: {imported_count}, Skipped (already existed): {skipped_count}")
     return imported_count
 
 
 def main():
-    print(f"Database type: {'PostgreSQL' if USE_POSTGRES else 'SQLite'}")
+    print("=" * 50)
+    print("Database Initialization Script")
+    print("=" * 50)
 
-    if not USE_POSTGRES:
-        print("Warning: DATABASE_URL not set, using SQLite.")
-        print("This script is intended for PostgreSQL initialization on Render.")
+    if not os.getenv("DATABASE_URL"):
+        print("WARNING: DATABASE_URL not set! Using SQLite (local file).")
+        print("On Render, DATABASE_URL should be automatically set.")
 
-    print("Initializing database tables...")
+    print("\n1. Creating database tables...")
     try:
         init_db()
-        print("Database tables created successfully!")
-
-        # Import invite codes
-        import_invite_codes()
-
-        print("\nDatabase initialization completed successfully!")
-        return 0
+        print("   Database tables created successfully!")
     except Exception as e:
-        print(f"Error during initialization: {e}")
+        print(f"   ERROR creating tables: {e}")
         import traceback
         traceback.print_exc()
         return 1
+
+    print("\n2. Importing invite codes...")
+    try:
+        imported = import_invite_codes_direct()
+        print(f"   Invite codes import completed! ({imported} new codes)")
+    except Exception as e:
+        print(f"   ERROR importing invite codes: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+    print("\n" + "=" * 50)
+    print("Database initialization completed successfully!")
+    print("=" * 50)
+    return 0
 
 
 if __name__ == "__main__":
