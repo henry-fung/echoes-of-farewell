@@ -71,56 +71,66 @@ INVITE_CODES_TO_IMPORT = load_invite_codes_from_csv()
 
 def _import_invite_codes():
     """Import pre-generated invite codes into database on startup."""
+    from database import get_db, USE_POSTGRES, DATABASE_URL
+
+    # Log database info
+    print(f"[INVITE] Loading invite codes from CSV...")
+    print(f"[INVITE] Found {len(INVITE_CODES_TO_IMPORT)} codes to import")
+
+    if not INVITE_CODES_TO_IMPORT:
+        print("[INVITE] No invite codes to import!")
+        return
+
+    if USE_POSTGRES:
+        print(f"[INVITE] Using PostgreSQL: {DATABASE_URL[:60] if DATABASE_URL else 'None'}...")
+    else:
+        print("[INVITE] WARNING: Using SQLite (DATABASE_URL not set)")
+
     try:
-        from database import get_db, USE_POSTGRES, DATABASE_URL
-
-        # Log database info
-        if USE_POSTGRES:
-            print(f"[STARTUP] Using PostgreSQL: {DATABASE_URL[:50]}...")
-        else:
-            print(f"[STARTUP] Using SQLite (DATABASE_URL not set)")
-
         with get_db() as db:
             # Get existing codes
             if USE_POSTGRES:
                 cursor = db.cursor()
-                cursor.execute("SELECT code FROM invite_codes")
-                existing_codes = {row[0] for row in cursor.fetchall()}
+                cursor.execute("SELECT code, is_used FROM invite_codes")
+                db_codes = {row[0]: row[1] for row in cursor.fetchall()}
                 cursor.close()
+                print(f"[INVITE] Database has {len(db_codes)} existing codes")
+            else:
+                # SQLite
+                db_codes = {row['code']: row['is_used'] for row in db.execute("SELECT code, is_used FROM invite_codes").fetchall()}
+                print(f"[INVITE] Database has {len(db_codes)} existing codes")
 
-                imported_count = 0
-                for code in INVITE_CODES_TO_IMPORT:
-                    if code in existing_codes:
-                        continue
-                    try:
+            imported_count = 0
+            skipped_count = 0
+
+            for code in INVITE_CODES_TO_IMPORT:
+                if code in db_codes:
+                    skipped_count += 1
+                    continue
+
+                try:
+                    if USE_POSTGRES:
+                        cursor = db.cursor()
                         cursor.execute("""
                             INSERT INTO invite_codes (code, created_by, is_used)
                             VALUES (%s, %s, FALSE)
-                        """, (code, 'import'))
-                        imported_count += 1
-                    except Exception:
-                        pass  # Skip duplicates
-                db.commit()
-            else:
-                # SQLite
-                existing_codes = {row['code'] for row in db.execute("SELECT code FROM invite_codes").fetchall()}
-                imported_count = 0
-                for code in INVITE_CODES_TO_IMPORT:
-                    if code in existing_codes:
-                        continue
-                    try:
+                        """, (code, 'system_import'))
+                        cursor.close()
+                    else:
                         db.execute("""
                             INSERT OR IGNORE INTO invite_codes (code, created_by, is_used)
                             VALUES (?, ?, 0)
-                        """, (code, 'import'))
-                        imported_count += 1
-                    except Exception:
-                        pass  # Skip duplicates
-                db.commit()
+                        """, (code, 'system_import'))
 
-            print(f"[STARTUP] Imported {imported_count} invite codes")
+                    imported_count += 1
+                except Exception as insert_error:
+                    print(f"[INVITE] Failed to insert {code}: {insert_error}")
+
+            db.commit()
+
+            print(f"[INVITE] Import complete: {imported_count} new, {skipped_count} skipped")
     except Exception as e:
-        print(f"[STARTUP] Error importing invite codes: {e}")
+        print(f"[INVITE] ERROR: {e}")
         import traceback
         traceback.print_exc()
 
