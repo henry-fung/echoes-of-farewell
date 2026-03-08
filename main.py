@@ -80,7 +80,7 @@ def _import_invite_codes():
                     try:
                         cursor.execute("""
                             INSERT INTO invite_codes (code, created_by, is_used)
-                            VALUES (%s, %s, 0)
+                            VALUES (%s, %s, FALSE)
                         """, (code, 'import'))
                         imported_count += 1
                     except Exception:
@@ -237,24 +237,40 @@ async def index():
 @app.post("/api/register")
 async def register(data: UserRegister):
     """Register new user with invite code."""
-    if len(data.username) < 3 or len(data.username) > 20:
-        raise HTTPException(status_code=400, detail="Username must be 3-20 characters")
-    if len(data.password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    import traceback
+    try:
+        if len(data.username) < 3 or len(data.username) > 20:
+            raise HTTPException(status_code=400, detail="Username must be 3-20 characters")
+        if len(data.password) < 6:
+            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
-    # Verify invite code first
-    if not verify_invite_code(data.invite_code):
-        raise HTTPException(status_code=400, detail="Invalid or already used invite code")
+        # Verify invite code first
+        print(f"[REGISTER] Verifying invite code: {data.invite_code}")
+        if not verify_invite_code(data.invite_code):
+            print(f"[REGISTER] Invite code verification failed: {data.invite_code}")
+            raise HTTPException(status_code=400, detail="Invalid or already used invite code")
+        print(f"[REGISTER] Invite code verified successfully")
 
-    user_id = create_user(data.username, data.password)
-    if user_id is None:
-        raise HTTPException(status_code=400, detail="Username already exists")
+        print(f"[REGISTER] Creating user: {data.username}")
+        user_id = create_user(data.username, data.password)
+        if user_id is None:
+            print(f"[REGISTER] User creation failed - username exists: {data.username}")
+            raise HTTPException(status_code=400, detail="Username already exists")
+        print(f"[REGISTER] User created with ID: {user_id}")
 
-    # Mark invite code as used
-    use_invite_code(data.invite_code, data.username)
+        # Mark invite code as used
+        print(f"[REGISTER] Marking invite code as used: {data.invite_code}")
+        use_invite_code(data.invite_code, data.username)
+        print(f"[REGISTER] Registration completed successfully")
 
-    token = create_token(user_id)
-    return {"success": True, "token": token, "username": data.username}
+        token = create_token(user_id)
+        return {"success": True, "token": token, "username": data.username}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[REGISTER] Unexpected error: {e}")
+        print(f"[REGISTER] Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @app.post("/api/login")

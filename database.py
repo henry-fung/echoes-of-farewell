@@ -1033,7 +1033,8 @@ def verify_invite_code(code: str) -> bool:
             cursor.close()
             if row is None:
                 return False
-            return row[0] == 0
+            # PostgreSQL returns bool (False/True), SQLite returns int (0/1)
+            return row[0] is False or row[0] == 0
         else:
             row = db.execute(
                 "SELECT is_used FROM invite_codes WHERE code = ?",
@@ -1059,13 +1060,14 @@ def use_invite_code(code: str, username: str) -> bool:
             )
             row = cursor.fetchone()
 
-            if row is None or row[0] == 1:
+            # PostgreSQL returns bool (False/True), SQLite returns int (0/1)
+            if row is None or (row[0] is True or row[0] == 1):
                 cursor.close()
                 return False
 
             # Mark as used
             cursor.execute(
-                "UPDATE invite_codes SET is_used = 1, used_by = %s, used_at = CURRENT_TIMESTAMP WHERE code = %s",
+                "UPDATE invite_codes SET is_used = true, used_by = %s, used_at = CURRENT_TIMESTAMP WHERE code = %s",
                 (username, code)
             )
             db.commit()
