@@ -18,15 +18,8 @@ services:
       - key: KIMI_MODEL
         value: moonshot-v1-8k
       - key: DATABASE_URL
-        fromDatabase:
-          name: echoes-db
-          property: connectionString
+        sync: false
     disk:
       name: uploads-data
       mountPath: /opt/render/project/src/static/uploads
       sizeGB: 1
-databases:
-  - name: echoes-db
-    databaseName: echoes
-    user: echoes_user
-    ipAllowList: []

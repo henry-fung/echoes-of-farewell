@@ -14,11 +14,15 @@ build/
 
 # Environment
 .env
+.env.local
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
+
+# Invite codes (optional - keep sample, ignore real data)
+# invite_codes.csv  # Uncomment if you want to keep codes private
 
 # IDE
 .vscode/

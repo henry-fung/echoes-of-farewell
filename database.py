@@ -1,6 +1,7 @@
 """
 Database models and operations for MemorialChat
 Supports both SQLite (development) and PostgreSQL (production)
+Optimized for Neon PostgreSQL serverless database
 """
 import os
 import hashlib
@@ -9,6 +10,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
 import json
+from urllib.parse import urlparse, parse_qs
 
 # Detect database type from environment
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -19,7 +21,8 @@ if USE_POSTGRES:
 else:
     import sqlite3
 
-DATABASE_FILE = "memorial_chat.db"
+# Use persistent disk on Render for SQLite
+DATABASE_FILE = os.getenv("SQLITE_DB_PATH", "memorial_chat.db")
 
 
 # ============== Database Connection ==============
@@ -28,12 +31,32 @@ DATABASE_FILE = "memorial_chat.db"
 def get_db():
     """Get database connection."""
     if USE_POSTGRES:
-        conn = psycopg2.connect(DATABASE_URL)
+        # Parse DATABASE_URL for Neon compatibility
+        parsed = urlparse(DATABASE_URL)
+
+        # Extract SSL mode from query params
+        query_params = parse_qs(parsed.query)
+        ssl_mode = query_params.get('sslmode', ['require'])[0]
+
+        # Build connection with SSL for Neon
+        conn = psycopg2.connect(
+            host=parsed.hostname,
+            port=parsed.port or 5432,
+            database=parsed.path.lstrip('/'),
+            user=parsed.username,
+            password=parsed.password,
+            sslmode=ssl_mode,
+            sslrequire=True
+        )
         try:
             yield conn
         finally:
             conn.close()
     else:
+        # Ensure directory exists for SQLite database file
+        db_dir = os.path.dirname(DATABASE_FILE)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
         conn = sqlite3.connect(DATABASE_FILE)
         conn.row_factory = sqlite3.Row
         try:
