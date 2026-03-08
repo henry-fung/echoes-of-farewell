@@ -81,11 +81,10 @@ def _import_invite_codes():
                         cursor.execute("""
                             INSERT INTO invite_codes (code, created_by, is_used)
                             VALUES (%s, %s, 0)
-                            ON CONFLICT (code) DO NOTHING
                         """, (code, 'import'))
                         imported_count += 1
                     except Exception:
-                        pass
+                        pass  # Skip duplicates
                 db.commit()
             else:
                 # SQLite
@@ -101,12 +100,14 @@ def _import_invite_codes():
                         """, (code, 'import'))
                         imported_count += 1
                     except Exception:
-                        pass
+                        pass  # Skip duplicates
                 db.commit()
 
             print(f"[STARTUP] Imported {imported_count} invite codes")
     except Exception as e:
         print(f"[STARTUP] Error importing invite codes: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 @asynccontextmanager
