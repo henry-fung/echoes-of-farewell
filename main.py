@@ -17,7 +17,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-import jwt
+try:
+    import jwt  # PyJWT
+except ImportError:
+    import PyJWT as jwt
 
 from database import (
     create_user, verify_user, get_user_by_id,
