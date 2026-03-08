@@ -1090,7 +1090,7 @@ def use_invite_code(code: str, username: str) -> bool:
 
             # Mark as used
             cursor.execute(
-                "UPDATE invite_codes SET is_used = true, used_by = %s, used_at = CURRENT_TIMESTAMP WHERE code = %s",
+                "UPDATE invite_codes SET is_used = 1, used_by = %s, used_at = CURRENT_TIMESTAMP WHERE code = %s",
                 (username, code)
             )
             db.commit()
