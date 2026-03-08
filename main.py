@@ -113,7 +113,7 @@ def _import_invite_codes():
                         cursor = db.cursor()
                         cursor.execute("""
                             INSERT INTO invite_codes (code, created_by, is_used)
-                            VALUES (%s, %s, FALSE)
+                            VALUES (%s, %s, 0)
                         """, (code, 'system_import'))
                         cursor.close()
                     else:

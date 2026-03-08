@@ -71,7 +71,7 @@ def import_invite_codes_direct():
                     cursor = db.cursor()
                     cursor.execute("""
                         INSERT INTO invite_codes (code, created_by, is_used)
-                        VALUES (%s, %s, FALSE)
+                        VALUES (%s, %s, 0)
                         ON CONFLICT (code) DO NOTHING
                     """, (code, 'import'))
                     cursor.close()
