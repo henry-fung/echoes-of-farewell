@@ -878,19 +878,19 @@ def create_or_update_emotional_state(
             existing = cursor.fetchone()
 
             if existing:
-                sql = """
-                    UPDATE emotional_states SET
-                        mood_index = %s, decay_rate = %s, dominant_stage = %s,
-                        recovery_phase = %s, memory_intimacy_weight = %s,
-                        strong_negative_events = %s, allow_proactive = %s,
-                        stage_denial = %s, stage_anger = %s,
-                        stage_bargaining = %s, stage_depression = %s,
-                        stage_acceptance = %s, stability_score = %s,
-                        risk_level = %s, negative_streak = %s,
-                        total_interactions = %s,
-                        last_interaction = CURRENT_TIMESTAMP,
-                        updated_at = CURRENT_TIMESTAMP
-                """
+                sql = (
+                    "UPDATE emotional_states SET "
+                    "mood_index = %s, decay_rate = %s, dominant_stage = %s, "
+                    "recovery_phase = %s, memory_intimacy_weight = %s, "
+                    "strong_negative_events = %s, allow_proactive = %s, "
+                    "stage_denial = %s, stage_anger = %s, "
+                    "stage_bargaining = %s, stage_depression = %s, "
+                    "stage_acceptance = %s, stability_score = %s, "
+                    "risk_level = %s, negative_streak = %s, "
+                    "total_interactions = %s, "
+                    "last_interaction = CURRENT_TIMESTAMP, "
+                    "updated_at = CURRENT_TIMESTAMP"
+                )
                 params = [
                     mood_index, decay_rate, dominant_stage, recovery_phase,
                     memory_intimacy_weight, strong_negative_events, 1 if allow_proactive else 0,
@@ -916,9 +916,7 @@ def create_or_update_emotional_state(
                         stage_denial, stage_anger, stage_bargaining, stage_depression, stage_acceptance,
                         stability_score, risk_level, negative_streak, total_interactions,
                         next_proactive_time
-                    ) VALUES (
-                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
-                    )
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     user_id, profile_id, mood_index, decay_rate, dominant_stage,
                     recovery_phase, memory_intimacy_weight, strong_negative_events, 1 if allow_proactive else 0,
