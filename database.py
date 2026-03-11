@@ -11,6 +11,10 @@ from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
 import json
 from urllib.parse import urlparse, parse_qs
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Detect database type from environment
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -144,6 +148,12 @@ TABLE_SCHEMAS = {
         allow_proactive INTEGER DEFAULT 1,
         last_interaction TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        -- 新增：连续情绪维度
+        valence REAL DEFAULT 0.0,
+        arousal REAL DEFAULT 0.5,
+        -- 新增：行为指标
+        behavior_counts TEXT,  -- JSON 格式存储行为计数
+        extracted_keywords TEXT,  -- JSON 格式存储关键词列表
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
         UNIQUE(user_id, profile_id)
@@ -159,6 +169,12 @@ TABLE_SCHEMAS = {
         grief_density REAL,
         text_length INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        -- 新增：连续情绪维度
+        valence REAL DEFAULT 0.0,
+        arousal REAL DEFAULT 0.5,
+        -- 新增：行为指标
+        behavior_counts TEXT,
+        extracted_keywords TEXT,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
     """,
@@ -859,12 +875,20 @@ def create_or_update_emotional_state(
     memory_intimacy_weight: float = 1.0,
     strong_negative_events: int = 0,
     allow_proactive: bool = True,
-    next_proactive_time: Optional[datetime] = None
+    next_proactive_time: Optional[datetime] = None,
+    valence: float = 0.0,
+    arousal: float = 0.5,
+    behavior_counts: Dict[str, int] = None,
+    extracted_keywords: List[str] = None
 ) -> bool:
     """Create or update emotional state."""
     if stage_probs is None:
         stage_probs = {"denial": 0.2, "anger": 0.2, "bargaining": 0.2,
                        "depression": 0.2, "acceptance": 0.2}
+    if behavior_counts is None:
+        behavior_counts = {"dependency": 0, "remembrance": 0, "future_oriented": 0, "self_disclosure": 0}
+    if extracted_keywords is None:
+        extracted_keywords = []
 
     with get_db() as db:
         if USE_POSTGRES:
@@ -888,6 +912,8 @@ def create_or_update_emotional_state(
                     "stage_acceptance = %s, stability_score = %s, "
                     "risk_level = %s, negative_streak = %s, "
                     "total_interactions = %s, "
+                    "valence = %s, arousal = %s, "
+                    "behavior_counts = %s, extracted_keywords = %s, "
                     "last_interaction = CURRENT_TIMESTAMP, "
                     "updated_at = CURRENT_TIMESTAMP"
                 )
@@ -897,7 +923,9 @@ def create_or_update_emotional_state(
                     stage_probs.get("denial", 0.2), stage_probs.get("anger", 0.2),
                     stage_probs.get("bargaining", 0.2), stage_probs.get("depression", 0.2),
                     stage_probs.get("acceptance", 0.2),
-                    stability_score, risk_level, negative_streak, total_interactions
+                    stability_score, risk_level, negative_streak, total_interactions,
+                    valence, arousal,
+                    json.dumps(behavior_counts), json.dumps(extracted_keywords)
                 ]
 
                 if next_proactive_time:
@@ -915,8 +943,9 @@ def create_or_update_emotional_state(
                         recovery_phase, memory_intimacy_weight, strong_negative_events, allow_proactive,
                         stage_denial, stage_anger, stage_bargaining, stage_depression, stage_acceptance,
                         stability_score, risk_level, negative_streak, total_interactions,
+                        valence, arousal, behavior_counts, extracted_keywords,
                         next_proactive_time
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     user_id, profile_id, mood_index, decay_rate, dominant_stage,
                     recovery_phase, memory_intimacy_weight, strong_negative_events, 1 if allow_proactive else 0,
@@ -924,6 +953,8 @@ def create_or_update_emotional_state(
                     stage_probs.get("bargaining", 0.2), stage_probs.get("depression", 0.2),
                     stage_probs.get("acceptance", 0.2),
                     stability_score, risk_level, negative_streak, total_interactions,
+                    valence, arousal,
+                    json.dumps(behavior_counts), json.dumps(extracted_keywords),
                     next_proactive_time
                 ))
 
@@ -947,6 +978,8 @@ def create_or_update_emotional_state(
                         stage_acceptance = ?, stability_score = ?,
                         risk_level = ?, negative_streak = ?,
                         total_interactions = ?,
+                        valence = ?, arousal = ?,
+                        behavior_counts = ?, extracted_keywords = ?,
                         last_interaction = CURRENT_TIMESTAMP,
                         updated_at = CURRENT_TIMESTAMP
                 """
@@ -956,7 +989,9 @@ def create_or_update_emotional_state(
                     stage_probs.get("denial", 0.2), stage_probs.get("anger", 0.2),
                     stage_probs.get("bargaining", 0.2), stage_probs.get("depression", 0.2),
                     stage_probs.get("acceptance", 0.2),
-                    stability_score, risk_level, negative_streak, total_interactions
+                    stability_score, risk_level, negative_streak, total_interactions,
+                    valence, arousal,
+                    json.dumps(behavior_counts), json.dumps(extracted_keywords)
                 ]
 
                 if next_proactive_time:
@@ -974,8 +1009,9 @@ def create_or_update_emotional_state(
                         recovery_phase, memory_intimacy_weight, strong_negative_events, allow_proactive,
                         stage_denial, stage_anger, stage_bargaining, stage_depression, stage_acceptance,
                         stability_score, risk_level, negative_streak, total_interactions,
+                        valence, arousal, behavior_counts, extracted_keywords,
                         next_proactive_time
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     user_id, profile_id, mood_index, decay_rate, dominant_stage,
                     recovery_phase, memory_intimacy_weight, strong_negative_events, 1 if allow_proactive else 0,
@@ -983,6 +1019,8 @@ def create_or_update_emotional_state(
                     stage_probs.get("bargaining", 0.2), stage_probs.get("depression", 0.2),
                     stage_probs.get("acceptance", 0.2),
                     stability_score, risk_level, negative_streak, total_interactions,
+                    valence, arousal,
+                    json.dumps(behavior_counts), json.dumps(extracted_keywords),
                     next_proactive_time
                 ))
 
@@ -998,17 +1036,28 @@ def log_emotional_history(
     intensity: float,
     risk_level: float,
     grief_density: float,
-    text_length: int
+    text_length: int,
+    valence: float = 0.0,
+    arousal: float = 0.5,
+    behavior_counts: Dict[str, int] = None,
+    extracted_keywords: List[str] = None
 ) -> int:
     """Log emotional history entry."""
+    if behavior_counts is None:
+        behavior_counts = {}
+    if extracted_keywords is None:
+        extracted_keywords = []
+
     with get_db() as db:
         if USE_POSTGRES:
             cursor = db.cursor()
             cursor.execute("""
                 INSERT INTO emotional_history
-                (user_id, profile_id, mood_index, dominant_stage, intensity, risk_level, grief_density, text_length)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
-            """, (user_id, profile_id, mood_index, dominant_stage, intensity, risk_level, grief_density, text_length))
+                (user_id, profile_id, mood_index, dominant_stage, intensity, risk_level, grief_density, text_length,
+                 valence, arousal, behavior_counts, extracted_keywords)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+            """, (user_id, profile_id, mood_index, dominant_stage, intensity, risk_level, grief_density, text_length,
+                  valence, arousal, json.dumps(behavior_counts), json.dumps(extracted_keywords)))
             db.commit()
             entry_id = cursor.fetchone()[0]
             cursor.close()
@@ -1016,9 +1065,11 @@ def log_emotional_history(
         else:
             cursor = db.execute("""
                 INSERT INTO emotional_history
-                (user_id, profile_id, mood_index, dominant_stage, intensity, risk_level, grief_density, text_length)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (user_id, profile_id, mood_index, dominant_stage, intensity, risk_level, grief_density, text_length))
+                (user_id, profile_id, mood_index, dominant_stage, intensity, risk_level, grief_density, text_length,
+                 valence, arousal, behavior_counts, extracted_keywords)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, profile_id, mood_index, dominant_stage, intensity, risk_level, grief_density, text_length,
+                  valence, arousal, json.dumps(behavior_counts), json.dumps(extracted_keywords)))
             db.commit()
             return cursor.lastrowid
 

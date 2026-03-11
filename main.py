@@ -1114,6 +1114,7 @@ def build_system_prompt(profile: dict, client_context: dict = None) -> str:
                 f'9. 注意当前时间是{time_ctx["period_name"]}，根据时间自然地融入适当的问候或关心',
                 f'10. 当前是{time_ctx["season"]}，可以根据季节特点表达关心（如夏天提醒防暑、冬天提醒保暖）',
                 '11. 根据你与用户的关系定位，使用合适的称呼和语气进行对话',
+                '12. 如需提及时间，使用模糊表达（如"这么晚了"、"这会儿"），避免使用精确时间（如 23:01）',
             ],
             'remember': f'请记住：用户正在思念{name}，你的回复应该能给他们带来安慰和温暖。'
         },
@@ -1151,6 +1152,7 @@ def build_system_prompt(profile: dict, client_context: dict = None) -> str:
                 f'10. 注意當前時間係{time_ctx["period_name"]}，根據時間自然地融入適當嘅問候或關心',
                 f'11. 而家係{time_ctx["season"]}，可以根據季節特點表達關心（如夏天提醒防暑、冬天提醒保暖）',
                 '12. 根據你與用戶嘅關係定位，使用合適嘅稱呼和語氣進行對話',
+                '13. 如需提及時間，使用模糊表達（如"咁夜"、"呢陣時"），避免使用精確時間（如 23:01）',
             ],
             'remember': f'請記住：用戶正在思念{name}，你的回覆應該能給他們帶來安慰和溫暖。'
         },
@@ -1188,6 +1190,7 @@ def build_system_prompt(profile: dict, client_context: dict = None) -> str:
                 f'10. 注意當前時間是{time_ctx["period_name"]}，根據時間自然地融入適當的問候或關心',
                 f'11. 現在是{time_ctx["season"]}，可以根據季節特點表達關心（如夏天提醒防暑、冬天提醒保暖）',
                 '12. 根據你與用戶的關係定位，使用合適的稱呼和語氣進行對話',
+                '13. 如需提及時間，使用模糊表達（如"這麼晚了"、"這會兒"），避免使用精確時間（如 23:01）',
             ],
             'remember': f'請記住：使用者正在思念{name}，你的回覆應該能給他們帶來安慰和溫暖。'
         },
@@ -1225,7 +1228,8 @@ def build_system_prompt(profile: dict, client_context: dict = None) -> str:
                 '10. Examples: "How are you ar?", "Miss you la", "Take care wor"',
                 f'11. Note that it is currently {time_ctx["period_name"]}, naturally incorporate appropriate greetings or care based on the time',
                 f'12. It is currently {time_ctx["season"]}, express care based on seasonal characteristics (e.g., stay cool in summer, keep warm in winter)',
-                '13. Based on your relationship role with the user, use appropriate forms of address and tone'
+                '13. Based on your relationship role with the user, use appropriate forms of address and tone',
+                '14. When mentioning time, use vague expressions (e.g., "this late", "right now"), avoid exact times (e.g., 23:01)'
             ],
             'remember': f'Remember: The user misses {name} deeply, your response should bring them comfort and warmth.'
         },
@@ -1262,7 +1266,8 @@ def build_system_prompt(profile: dict, client_context: dict = None) -> str:
                 '9. Use casual, friendly American expressions',
                 f'10. Note that it is currently {time_ctx["period_name"]}, naturally incorporate appropriate time-based greetings or concerns',
                 f'11. It is currently {time_ctx["season"]}, express care based on seasonal characteristics (e.g., stay cool in summer, keep warm in winter)',
-                '12. Based on your relationship role with the user, use appropriate forms of address and tone'
+                '12. Based on your relationship role with the user, use appropriate forms of address and tone',
+                '13. When mentioning time, use vague expressions (e.g., "this late", "right now"), avoid exact times (e.g., 23:01)'
             ],
             'remember': f'Remember: The user misses {name} deeply, your response should bring them comfort and warmth.'
         },
@@ -1299,7 +1304,8 @@ def build_system_prompt(profile: dict, client_context: dict = None) -> str:
                 '9. Use polite, gentle British expressions',
                 f'10. Note that it is currently {time_ctx["period_name"]}, naturally incorporate appropriate time-based greetings or concerns',
                 f'11. It is currently {time_ctx["season"]}, express care based on seasonal characteristics (e.g., stay cool in summer, keep warm in winter)',
-                '12. Based on your relationship role with the user, use appropriate forms of address and tone'
+                '12. Based on your relationship role with the user, use appropriate forms of address and tone',
+                '13. When mentioning time, use vague expressions (e.g., "this late", "right now"), avoid exact times (e.g., 23:01)'
             ],
             'remember': f'Remember: The user misses {name} deeply, your response should bring them comfort and warmth.'
         }
@@ -1486,10 +1492,15 @@ async def chat(data: ChatMessage, user_id: int = Depends(get_current_user)):
             memory_intimacy_weight=state.memory_intimacy_weight,
             strong_negative_events=state.strong_negative_events,
             allow_proactive=state.allow_proactive,
-            next_proactive_time=state.next_proactive_time
+            next_proactive_time=state.next_proactive_time,
+            # 新增字段
+            valence=state.valence,
+            arousal=state.arousal,
+            behavior_counts=state.behavior_counts,
+            extracted_keywords=state.extracted_keywords
         )
         
-        # 13. 记录情感历史
+        # 13. 记录情感历史（包含新字段）
         log_emotional_history(
             user_id=user_id,
             profile_id=data.profile_id,
@@ -1498,12 +1509,16 @@ async def chat(data: ChatMessage, user_id: int = Depends(get_current_user)):
             intensity=analysis["intensity"],
             risk_level=analysis["risk_level"],
             grief_density=analysis["grief_density"],
-            text_length=len(data.message)
+            text_length=len(data.message),
+            valence=analysis.get("valence", 0.0),
+            arousal=analysis.get("arousal", 0.5),
+            behavior_counts=analysis.get("behavior_counts", {}),
+            extracted_keywords=analysis.get("extracted_keywords", [])
         )
         
-        # 14. 返回结果 (包含情感状态供前端显示)
+        # 14. 返回结果（包含情感状态供前端显示）
         return {
-            "success": True, 
+            "success": True,
             "response": response_text,
             "emotion_state": {
                 "mood_index": round(state.mood_index, 1),
@@ -1512,6 +1527,11 @@ async def chat(data: ChatMessage, user_id: int = Depends(get_current_user)):
                 "stability": round(state.stability_score, 2),
                 "risk_level": round(state.risk_level, 2),
                 "safety_alert": safety_alert,
+                # 新增字段
+                "valence": round(state.valence, 4),
+                "arousal": round(state.arousal, 4),
+                "behavior_counts": state.behavior_counts,
+                "extracted_keywords": state.extracted_keywords[:10],  # 限制返回数量
                 "strategy": {
                     "max_length": strategy_params["max_length"],
                     "intimacy_level": round(strategy_params["intimacy_level"], 2)
@@ -1593,6 +1613,11 @@ async def get_emotion_state(
             "allow_proactive": state.allow_proactive,
             "next_proactive_time": state.next_proactive_time.isoformat() if state.next_proactive_time else None,
             "safety_alert": safety_alert,
+            # 新增字段
+            "valence": round(state.valence, 4),
+            "arousal": round(state.arousal, 4),
+            "behavior_counts": state.behavior_counts,
+            "extracted_keywords": state.extracted_keywords[:10],
             "strategy": {
                 "max_length": strategy_params["max_length"],
                 "intimacy_level": round(strategy_params["intimacy_level"], 2),
@@ -1600,6 +1625,29 @@ async def get_emotion_state(
                 "memory_support_weight": round(strategy_params.get("memory_support_weight", 0), 2)
             }
         }
+    }
+
+
+@app.get("/api/emotion/trend-analysis")
+async def get_trend_analysis(
+    profile_id: int = Query(..., description="Profile ID to get trend analysis for"),
+    user_id: int = Depends(get_current_user)
+):
+    """获取用户行为趋势分析（新增）"""
+    # 验证 profile 属于用户
+    profile = get_profile_by_id(profile_id, user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # 获取情感状态
+    state = emotion_engine.get_or_create_state(user_id, profile_id)
+
+    # 执行趋势分析
+    trend_analysis = emotion_engine.analyze_user_trend(state)
+
+    return {
+        "success": True,
+        "trend_analysis": trend_analysis
     }
 
 
