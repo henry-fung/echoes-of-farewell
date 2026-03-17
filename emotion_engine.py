@@ -443,53 +443,37 @@ class EmotionEngine:
     
     def calculate_phase_decay_rate(self, state: EmotionState) -> float:
         """
-        分阶段衰减曲线: 根据恢复阶段动态调整衰减率
-        - 急性期 (0-1个月): 低衰减 0.02, 高支持度
-        - 整合期 (1-3个月): 中线性衰减 0.04
-        - 接受期 (3个月+): 较高衰减 0.06, 逐步独立
+        分阶段衰减曲线：30 天周期，根据时间自动切换阶段
+        - 急性期 (1-10 天): 低衰减 0.02, 高支持度
+        - 整合期 (11-20 天): 中线性衰减 0.04
+        - 接受期 (21-30 天): 较高衰减 0.06, 逐步独立
         """
         now = datetime.utcnow()
         days_since_start = (now - state.phase_start_time).total_seconds() / 86400
-        
-        # 基于时间和当前阶段确定基础衰减率
-        if state.recovery_phase == "acute":
-            # 急性期: 低衰减, 保持高支持
-            if days_since_start > 30:  # 超过1个月, 考虑进入整合期
-                # 检查是否满足转移条件
-                if state.stage_probabilities.get("acceptance", 0) > 0.3:
-                    state.recovery_phase = "integrated"
-                    state.phase_start_time = now
-                    base_rate = 0.04
-                else:
-                    base_rate = 0.02
-            else:
-                base_rate = 0.02
-                
-        elif state.recovery_phase == "integrated":
-            # 整合期: 中线性衰减
-            if days_since_start > 60:  # 超过2个月, 考虑进入接受期
-                if state.stage_probabilities.get("acceptance", 0) > 0.5:
-                    state.recovery_phase = "acceptance"
-                    state.phase_start_time = now
-                    base_rate = 0.06
-                else:
-                    base_rate = 0.04
-            else:
-                base_rate = 0.04
-                
-        else:  # acceptance
-            # 接受期: 较高衰减, 鼓励独立
+
+        # 基于时间强制切换阶段 (严格 30 天周期)
+        if days_since_start <= 10:
+            # 急性期 (1-10 天)
+            state.recovery_phase = "acute"
+            base_rate = 0.02
+        elif days_since_start <= 20:
+            # 整合期 (11-20 天)
+            state.recovery_phase = "integrated"
+            base_rate = 0.04
+        else:
+            # 接受期 (21-30 天)
+            state.recovery_phase = "acceptance"
             base_rate = 0.06
-        
+
         # 强烈负向事件后临时降低衰减率 (更慢淡出)
         if state.strong_negative_events > 0:
-            # 每次强烈负向事件降低衰减率20%, 最多降低60%
+            # 每次强烈负向事件降低衰减率 20%, 最多降低 60%
             reduction = min(state.strong_negative_events * 0.2, 0.6)
             base_rate *= (1 - reduction)
             state.strong_negative_events = max(0, state.strong_negative_events - 0.5)  # 逐渐恢复
-        
-        return max(base_rate, 0.01)  # 最低1%衰减
-    
+
+        return max(base_rate, 0.01)  # 最低 1% 衰减
+
     def detect_phase_transition(self, state: EmotionState, analysis: Dict) -> Optional[str]:
         """
         检测阶段转移条件
@@ -1118,6 +1102,197 @@ class EmotionEngine:
             return 0.0
 
         return numerator / denominator
+
+    def analyze_monthly_trend(self, state: EmotionState, monthly_stats: List[Dict]) -> Dict:
+        """
+        按月情绪趋势分析
+        Args:
+            state: 用户情感状态
+            monthly_stats: 月度统计数据（来自 get_monthly_emotion_stats）
+        Returns:
+            月度趋势分析结果
+        """
+        if len(monthly_stats) < 2:
+            return {
+                "trend": "insufficient_data",
+                "message": "需要至少 2 个月的数据才能进行趋势分析"
+            }
+
+        # 按时间正序排列（数据库返回的是倒序）
+        stats = sorted(monthly_stats, key=lambda x: x['month'])
+
+        # 1. 计算 mood 指数趋势
+        mood_values = [s['avg_mood_index'] or 50 for s in stats]
+        mood_trend = self._calculate_trend_slope(mood_values)
+
+        # 2. 计算效价趋势
+        valence_values = [s['avg_valence'] or 0 for s in stats]
+        valence_trend = self._calculate_trend_slope(valence_values)
+
+        # 3. 计算唤醒度趋势
+        arousal_values = [s['avg_arousal'] or 0.5 for s in stats]
+        arousal_trend = self._calculate_trend_slope(arousal_values)
+
+        # 4. 计算风险趋势
+        risk_values = [s['avg_risk_level'] or 0 for s in stats]
+        risk_trend = self._calculate_trend_slope(risk_values)
+
+        # 5. 五阶段变化趋势
+        acceptance_values = [s.get('acceptance_ratio', 0) or 0 for s in stats]
+        depression_values = [s.get('depression_ratio', 0) or 0 for s in stats]
+
+        acceptance_trend = self._calculate_trend_slope(acceptance_values)
+        depression_trend = self._calculate_trend_slope(depression_values)
+
+        # 6. 综合评估
+        overall_assessment = "stable"
+        if mood_trend > 2 and valence_trend > 0.1:
+            overall_assessment = "improving"
+        elif mood_trend < -2 and valence_trend < -0.1:
+            overall_assessment = "declining"
+        elif abs(mood_trend) > 5:
+            overall_assessment = "fluctuating"
+
+        # 7. 阶段进展判断
+        stage_progress = "stable"
+        if acceptance_trend > 1 and depression_trend < -1:
+            stage_progress = "improving"
+        elif depression_trend > 2:
+            stage_progress = "declining"
+
+        return {
+            "trend": overall_assessment,
+            "mood_trend": round(mood_trend, 4),
+            "valence_trend": round(valence_trend, 4),
+            "arousal_trend": round(arousal_trend, 4),
+            "risk_trend": round(risk_trend, 4),
+            "acceptance_trend": round(acceptance_trend, 4),
+            "depression_trend": round(depression_trend, 4),
+            "stage_progress": stage_progress,
+            "months_analyzed": len(stats),
+            "monthly_data": [
+                {
+                    "month": str(s['month'])[:7] if hasattr(s['month'], '__str__') else s['month'],
+                    "avg_mood_index": round(s['avg_mood_index'], 2) if s['avg_mood_index'] else 0,
+                    "avg_valence": round(s['avg_valence'], 2) if s['avg_valence'] else 0,
+                    "avg_arousal": round(s['avg_arousal'], 2) if s['avg_arousal'] else 0,
+                    "avg_risk_level": round(s['avg_risk_level'], 2) if s['avg_risk_level'] else 0,
+                    "dominant_stage": s['dominant_stage'],
+                    "interaction_count": s['interaction_count']
+                }
+                for s in stats
+            ]
+        }
+
+
+    def analyze_period_trend(self, state: EmotionState, period_stats: Dict) -> Dict:
+        """
+        按 10 天周期情绪趋势分析（30 天项目周期）
+        Args:
+            state: 用户情感状态
+            period_stats: 周期统计数据（来自 get_period_emotion_stats）
+        Returns:
+            周期趋势分析结果
+        """
+        periods = period_stats.get('periods', [])
+        
+        if len(periods) < 2:
+            return {
+                "trend": "insufficient_data",
+                "message": "需要至少 2 个周期的数据才能进行趋势分析"
+            }
+        
+        # 定义周期名称
+        period_names = {
+            1: "急性期 (1-10 天)",
+            2: "整合期 (11-20 天)",
+            3: "接受期 (21-30 天)"
+        }
+        
+        # 1. 计算 mood 指数趋势
+        mood_values = [p.get('avg_mood_index') or 50 for p in periods]
+        mood_trend = self._calculate_trend_slope(mood_values)
+        
+        # 2. 计算效价趋势
+        valence_values = [p.get('avg_valence') or 0 for p in periods]
+        valence_trend = self._calculate_trend_slope(valence_values)
+        
+        # 3. 计算唤醒度趋势
+        arousal_values = [p.get('avg_arousal') or 0.5 for p in periods]
+        arousal_trend = self._calculate_trend_slope(arousal_values)
+        
+        # 4. 计算风险趋势
+        risk_values = [p.get('avg_risk_level') or 0 for p in periods]
+        risk_trend = self._calculate_trend_slope(risk_values)
+        
+        # 5. 五阶段变化趋势
+        acceptance_values = [p.get('acceptance_ratio', 0) or 0 for p in periods]
+        depression_values = [p.get('depression_ratio', 0) or 0 for p in periods]
+        
+        acceptance_trend = self._calculate_trend_slope(acceptance_values)
+        depression_trend = self._calculate_trend_slope(depression_values)
+        
+        # 6. 综合评估
+        overall_assessment = "stable"
+        if mood_trend > 2 and valence_trend > 0.1:
+            overall_assessment = "improving"
+        elif mood_trend < -2 and valence_trend < -0.1:
+            overall_assessment = "declining"
+        elif abs(mood_trend) > 5:
+            overall_assessment = "fluctuating"
+        
+        # 7. 阶段进展判断
+        stage_progress = "stable"
+        if acceptance_trend > 1 and depression_trend < -1:
+            stage_progress = "improving"
+        elif depression_trend > 2:
+            stage_progress = "declining"
+        
+        # 8. 周期详细数据
+        period_data = []
+        for p in periods:
+            period_num = int(p['period_num']) if not isinstance(p['period_num'], int) else p['period_num']
+            period_data.append({
+                "period": period_names.get(period_num, f"第{period_num}周期"),
+                "period_num": period_num,
+                "avg_mood_index": round(p['avg_mood_index'], 2) if p['avg_mood_index'] else 0,
+                "avg_valence": round(p['avg_valence'], 2) if p['avg_valence'] else 0,
+                "avg_arousal": round(p['avg_arousal'], 2) if p['avg_arousal'] else 0,
+                "avg_risk_level": round(p['avg_risk_level'], 2) if p['avg_risk_level'] else 0,
+                "avg_grief_density": round(p['avg_grief_density'], 2) if p['avg_grief_density'] else 0,
+                "dominant_stage": p['dominant_stage'],
+                "interaction_count": p['interaction_count'],
+                "denial_ratio": round(p['denial_ratio'], 2) if p['denial_ratio'] else 0,
+                "anger_ratio": round(p['anger_ratio'], 2) if p['anger_ratio'] else 0,
+                "bargaining_ratio": round(p['bargaining_ratio'], 2) if p['bargaining_ratio'] else 0,
+                "depression_ratio": round(p['depression_ratio'], 2) if p['depression_ratio'] else 0,
+                "acceptance_ratio": round(p['acceptance_ratio'], 2) if p['acceptance_ratio'] else 0
+            })
+        
+        return {
+            "trend": overall_assessment,
+            "mood_trend": round(mood_trend, 4),
+            "valence_trend": round(valence_trend, 4),
+            "arousal_trend": round(arousal_trend, 4),
+            "risk_trend": round(risk_trend, 4),
+            "acceptance_trend": round(acceptance_trend, 4),
+            "depression_trend": round(depression_trend, 4),
+            "stage_progress": stage_progress,
+            "periods_analyzed": len(periods),
+            "period_data": period_data
+        }
+
+    def analyze_monthly_trend(self, state: EmotionState, monthly_stats: List[Dict]) -> Dict:
+        """
+        按月情绪趋势分析（已废弃，请使用 analyze_period_trend）
+        Args:
+            state: 用户情感状态
+            monthly_stats: 月度统计数据
+        Returns:
+            月度趋势分析结果
+        """
+        # 重定向到周期分析
+        return self.analyze_period_trend(state, {"periods": monthly_stats})
 
 
 # 全局引擎实例

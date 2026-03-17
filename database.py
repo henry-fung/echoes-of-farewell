@@ -1100,6 +1100,196 @@ def get_emotional_history(user_id: int, profile_id: int, limit: int = 50) -> Lis
             return [dict(row) for row in rows]
 
 
+def get_monthly_emotion_stats(user_id: int, profile_id: int, months: int = 6) -> List[Dict[str, Any]]:
+    """
+    获取按月统计的情绪数据
+    Args:
+        user_id: 用户 ID
+        profile_id: 档案 ID
+        months: 统计最近几个月的数据，默认 6 个月
+    Returns:
+        按月统计的情绪数据列表，包含每月的心情指数、各阶段占比等
+    """
+    with get_db() as db:
+        if USE_POSTGRES:
+            cursor = db.cursor()
+            # PostgreSQL 使用 date_trunc 函数按月份分组
+            cursor.execute("""
+                SELECT
+                    date_trunc('month', created_at) as month,
+                    COUNT(*) as interaction_count,
+                    AVG(mood_index) as avg_mood_index,
+                    AVG(valence) as avg_valence,
+                    AVG(arousal) as avg_arousal,
+                    AVG(risk_level) as avg_risk_level,
+                    AVG(grief_density) as avg_grief_density,
+                    MODE() WITHIN GROUP (ORDER BY dominant_stage) as dominant_stage,
+                    -- 计算各阶段占比
+                    COUNT(*) FILTER (WHERE dominant_stage = 'denial') * 100.0 / COUNT(*) as denial_ratio,
+                    COUNT(*) FILTER (WHERE dominant_stage = 'anger') * 100.0 / COUNT(*) as anger_ratio,
+                    COUNT(*) FILTER (WHERE dominant_stage = 'bargaining') * 100.0 / COUNT(*) as bargaining_ratio,
+                    COUNT(*) FILTER (WHERE dominant_stage = 'depression') * 100.0 / COUNT(*) as depression_ratio,
+                    COUNT(*) FILTER (WHERE dominant_stage = 'acceptance') * 100.0 / COUNT(*) as acceptance_ratio
+                FROM emotional_history
+                WHERE user_id = %s AND profile_id = %s
+                GROUP BY date_trunc('month', created_at)
+                ORDER BY month DESC
+                LIMIT %s
+            """, (user_id, profile_id, months))
+            rows = cursor.fetchall()
+            columns = [desc[0] for desc in cursor.description]
+            result = [dict(zip(columns, row)) for row in rows]
+            cursor.close()
+            return result
+        else:
+            # SQLite 使用 strftime 函数按月份分组
+            cursor = db.execute("""
+                SELECT
+                    strftime('%Y-%m', created_at) as month,
+                    COUNT(*) as interaction_count,
+                    AVG(mood_index) as avg_mood_index,
+                    AVG(valence) as avg_valence,
+                    AVG(arousal) as avg_arousal,
+                    AVG(risk_level) as avg_risk_level,
+                    AVG(grief_density) as avg_grief_density,
+                    -- SQLite 不支持 MODE()，使用子查询获取主导阶段
+                    (SELECT dominant_stage FROM emotional_history e2
+                     WHERE strftime('%Y-%m', e2.created_at) = strftime('%Y-%m', emotional_history.created_at)
+                     GROUP BY dominant_stage ORDER BY COUNT(*) DESC LIMIT 1) as dominant_stage,
+                    -- 计算各阶段占比（使用 CASE WHEN）
+                    SUM(CASE WHEN dominant_stage = 'denial' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as denial_ratio,
+                    SUM(CASE WHEN dominant_stage = 'anger' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as anger_ratio,
+                    SUM(CASE WHEN dominant_stage = 'bargaining' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as bargaining_ratio,
+                    SUM(CASE WHEN dominant_stage = 'depression' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as depression_ratio,
+                    SUM(CASE WHEN dominant_stage = 'acceptance' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as acceptance_ratio
+                FROM emotional_history
+                WHERE user_id = ? AND profile_id = ?
+                GROUP BY strftime('%Y-%m', created_at)
+                ORDER BY month DESC
+                LIMIT ?
+            """, (user_id, profile_id, months))
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+
+
+def get_period_emotion_stats(user_id: int, profile_id: int, period_days: int = 30) -> Dict[str, Any]:
+    """
+    获取按 10 天周期统计的情绪数据（30 天项目周期）
+    Args:
+        user_id: 用户 ID
+        profile_id: 档案 ID
+        period_days: 项目周期天数，默认 30 天
+    Returns:
+        按 10 天周期统计的情绪数据，包含三个周期（1-10 天、11-20 天、21-30 天）的心情指数、
+        各阶段占比等
+    """
+    with get_db() as db:
+        # 获取用户的 phase_start_time 作为参考点
+        if USE_POSTGRES:
+            cursor = db.cursor()
+            # 首先获取用户的 phase_start_time
+            cursor.execute("""
+                SELECT phase_start_time FROM emotional_states
+                WHERE user_id = %s AND profile_id = %s
+                ORDER BY created_at DESC LIMIT 1
+            """, (user_id, profile_id))
+            start_row = cursor.fetchone()
+            if not start_row:
+                return {"periods": [], "message": "未找到情感状态数据"}
+            
+            # PostgreSQL 版本：使用 CASE WHEN 按天数区间分组
+            cursor.execute("""
+                WITH period_data AS (
+                    SELECT
+                        CASE
+                            WHEN EXTRACT(EPOCH FROM (created_at - %s)) / 86400 <= 10 THEN 1
+                            WHEN EXTRACT(EPOCH FROM (created_at - %s)) / 86400 <= 20 THEN 2
+                            ELSE 3
+                        END as period_num,
+                        mood_index,
+                        valence,
+                        arousal,
+                        risk_level,
+                        grief_density,
+                        dominant_stage
+                    FROM emotional_history
+                    WHERE user_id = %s AND profile_id = %s
+                    AND created_at >= %s
+                    AND EXTRACT(EPOCH FROM (created_at - %s)) / 86400 <= %s
+                )
+                SELECT
+                    period_num,
+                    COUNT(*) as interaction_count,
+                    AVG(mood_index) as avg_mood_index,
+                    AVG(valence) as avg_valence,
+                    AVG(arousal) as avg_arousal,
+                    AVG(risk_level) as avg_risk_level,
+                    AVG(grief_density) as avg_grief_density,
+                    MODE() WITHIN GROUP (ORDER BY dominant_stage) as dominant_stage,
+                    COUNT(*) FILTER (WHERE dominant_stage = 'denial') * 100.0 / COUNT(*) as denial_ratio,
+                    COUNT(*) FILTER (WHERE dominant_stage = 'anger') * 100.0 / COUNT(*) as anger_ratio,
+                    COUNT(*) FILTER (WHERE dominant_stage = 'bargaining') * 100.0 / COUNT(*) as bargaining_ratio,
+                    COUNT(*) FILTER (WHERE dominant_stage = 'depression') * 100.0 / COUNT(*) as depression_ratio,
+                    COUNT(*) FILTER (WHERE dominant_stage = 'acceptance') * 100.0 / COUNT(*) as acceptance_ratio
+                FROM period_data
+                GROUP BY period_num
+                ORDER BY period_num ASC
+            """, (start_row[0], start_row[0], user_id, profile_id, start_row[0], start_row[0], period_days))
+            rows = cursor.fetchall()
+            columns = [desc[0] for desc in cursor.description]
+            result = {"periods": [dict(zip(columns, row)) for row in rows]}
+            cursor.close()
+            return result
+        else:
+            # SQLite 版本
+            cursor = db.execute("""
+                SELECT
+                    CASE
+                        WHEN (julianday(created_at) - julianday(?)) <= 10 THEN 1
+                        WHEN (julianday(created_at) - julianday(?)) <= 20 THEN 2
+                        ELSE 3
+                    END as period_num,
+                    COUNT(*) as interaction_count,
+                    AVG(mood_index) as avg_mood_index,
+                    AVG(valence) as avg_valence,
+                    AVG(arousal) as avg_arousal,
+                    AVG(risk_level) as avg_risk_level,
+                    AVG(grief_density) as avg_grief_density,
+                    SUM(CASE WHEN dominant_stage = 'denial' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as denial_ratio,
+                    SUM(CASE WHEN dominant_stage = 'anger' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as anger_ratio,
+                    SUM(CASE WHEN dominant_stage = 'bargaining' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as bargaining_ratio,
+                    SUM(CASE WHEN dominant_stage = 'depression' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as depression_ratio,
+                    SUM(CASE WHEN dominant_stage = 'acceptance' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as acceptance_ratio
+                FROM emotional_history
+                WHERE user_id = ? AND profile_id = ?
+                AND julianday(created_at) >= julianday(?)
+                AND (julianday(created_at) - julianday(?)) <= ?
+                GROUP BY period_num
+                ORDER BY period_num ASC
+            """, (start_row[0], start_row[0], user_id, profile_id, start_row[0], start_row[0], period_days))
+            rows = cursor.fetchall()
+            # 获取主导阶段（SQLite 不支持聚合模式，需要单独查询）
+            periods = []
+            for row in rows:
+                period_dict = dict(row)
+                period_num = period_dict['period_num']
+                # 查询该时期的主导阶段
+                cursor.execute("""
+                    SELECT dominant_stage FROM emotional_history
+                    WHERE user_id = ? AND profile_id = ?
+                    AND CASE
+                        WHEN (julianday(created_at) - julianday(?)) <= 10 THEN 1
+                        WHEN (julianday(created_at) - julianday(?)) <= 20 THEN 2
+                        ELSE 3
+                    END = ?
+                    GROUP BY dominant_stage ORDER BY COUNT(*) DESC LIMIT 1
+                """, (user_id, profile_id, start_row[0], start_row[0], period_num))
+                stage_row = cursor.fetchone()
+                period_dict['dominant_stage'] = stage_row[0] if stage_row else 'unknown'
+                periods.append(period_dict)
+            return {"periods": periods}
+
+
 def get_risk_profiles() -> List[Dict[str, Any]]:
     """Get all profiles with high risk level (for monitoring)."""
     with get_db() as db:

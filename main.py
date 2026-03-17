@@ -30,7 +30,8 @@ from database import (
     get_emotional_history, add_message_with_emotion,
     get_user_consent, update_user_consent,
     get_last_survey_date, submit_survey,
-    verify_invite_code, use_invite_code, register_user_with_invite_code
+    verify_invite_code, use_invite_code, register_user_with_invite_code,
+    get_monthly_emotion_stats, get_period_emotion_stats
 )
 from llm_provider import LLMProvider, LLMFactory
 from emotion_engine import emotion_engine, EmotionState
@@ -1661,12 +1662,64 @@ async def get_emotion_history_api(
     profile = get_profile_by_id(profile_id, user_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
-    
+
     history = get_emotional_history(user_id, profile_id, limit=100)
-    
+
     return {
         "success": True,
         "history": history
+    }
+
+
+@app.get("/api/emotion/monthly-stats")
+async def get_monthly_stats(
+    profile_id: int = Query(..., description="Profile ID to get monthly stats for"),
+    months: int = Query(6, description="Number of months to analyze, default 6"),
+    user_id: int = Depends(get_current_user)
+):
+    """获取月度情绪趋势统计（已废弃，请使用 /api/emotion/period-stats）"""
+    # 验证 profile 属于用户
+    profile = get_profile_by_id(profile_id, user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # 获取月度统计数据
+    monthly_stats = get_monthly_emotion_stats(user_id, profile_id, months)
+
+    # 使用 emotion_engine 进行更深入的分析
+    state = emotion_engine.get_or_create_state(user_id, profile_id)
+    trend_analysis = emotion_engine.analyze_monthly_trend(state, monthly_stats)
+
+    return {
+        "success": True,
+        "monthly_stats": monthly_stats,
+        "trend_analysis": trend_analysis
+    }
+
+
+@app.get("/api/emotion/period-stats")
+async def get_period_stats(
+    profile_id: int = Query(..., description="Profile ID to get period stats for"),
+    period_days: int = Query(30, description="Number of days to analyze, default 30"),
+    user_id: int = Depends(get_current_user)
+):
+    """获取 10 天周期的情绪趋势统计（30 天项目周期）"""
+    # 验证 profile 属于用户
+    profile = get_profile_by_id(profile_id, user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # 获取周期统计数据
+    period_stats = get_period_emotion_stats(user_id, profile_id, period_days)
+
+    # 使用 emotion_engine 进行更深入的分析
+    state = emotion_engine.get_or_create_state(user_id, profile_id)
+    trend_analysis = emotion_engine.analyze_period_trend(state, period_stats)
+
+    return {
+        "success": True,
+        "period_stats": period_stats,
+        "trend_analysis": trend_analysis
     }
 
 
