@@ -399,6 +399,7 @@ const state = {
     user: null,
     profiles: [],
     currentProfile: null,  // Currently selected profile for chat
+    currentProfileId: parseInt(sessionStorage.getItem('currentProfileId')) || null,
     currentPage: 'profiles',
     isLoading: false,
     hasConfirmedConsentThisSession: false,  // Track if user confirmed consent in current session
@@ -683,6 +684,10 @@ function switchTab(tab) {
 
 function showPage(page) {
     state.currentPage = page;
+    // Save last visited page for restoration after refresh
+    if (page === 'chat' || page === 'profiles') {
+        sessionStorage.setItem('lastPage', page);
+    }
     
     // Update nav - 只有"亲人档案"是导航项，对话列表单独处理
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -774,8 +779,10 @@ function logout() {
     state.user = null;
     state.profiles = [];
     state.currentProfile = null;
+    state.currentProfileId = null;
     state.hasConfirmedConsentThisSession = false;
     localStorage.removeItem('token');
+    sessionStorage.clear();
     document.getElementById('authModal').classList.remove('hidden');
     document.getElementById('app').classList.add('hidden');
 }
@@ -1345,6 +1352,8 @@ function selectProfileAndChat(profileId) {
     const profile = state.profiles.find(p => p.id === profileId);
     if (profile) {
         state.currentProfile = profile;
+        state.currentProfileId = profileId;
+        sessionStorage.setItem('currentProfileId', profileId);
         renderChatProfilesList(); // 更新选中状态
         showPage('chat');
     }
@@ -1382,6 +1391,8 @@ function selectProfileForChat(profileId) {
     const profile = state.profiles.find(p => p.id === profileId);
     if (profile) {
         state.currentProfile = profile;
+        state.currentProfileId = profileId;
+        sessionStorage.setItem('currentProfileId', profileId);
         showPage('chat');
     }
 }
@@ -1824,6 +1835,8 @@ function enterChatRoom(profileId) {
     const profile = state.profiles.find(p => p.id === profileId);
     if (profile) {
         state.currentProfile = profile;
+        state.currentProfileId = profileId;
+        sessionStorage.setItem('currentProfileId', profileId);
         showPage('chat');
     }
 }
@@ -1945,8 +1958,24 @@ async function initApp() {
             // Load profiles first
             await loadProfiles();
 
-            // Show profiles page
-            showPage('profiles');
+            // Restore last visited page and selected profile
+            const lastPage = sessionStorage.getItem('lastPage') || 'profiles';
+            const savedProfileId = sessionStorage.getItem('currentProfileId');
+            
+            if (savedProfileId && state.profiles.length > 0) {
+                const savedProfile = state.profiles.find(p => p.id == savedProfileId);
+                if (savedProfile) {
+                    state.currentProfile = savedProfile;
+                    state.currentProfileId = parseInt(savedProfileId);
+                }
+            }
+            
+            // Restore last page (chat or profiles)
+            if (lastPage === 'chat' && state.currentProfile) {
+                showPage('chat');
+            } else {
+                showPage('profiles');
+            }
 
             // Check survey status after loading app
             await checkSurveyStatus();
