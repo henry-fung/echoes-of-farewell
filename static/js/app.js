@@ -625,10 +625,10 @@ function getCurrentPosition() {
 // ============== Chat Functions ==============
 
 async function sendChatMessage(profileId, message) {
-    // LLM 生成需要较长时间，使用 90 秒超时
+    // LLM 生成需要较长时间，使用 200 秒超时（覆盖后端最大重试时间）
     // Get client context for time/location/weather-based responses
     const clientContext = await getClientContext();
-    
+
     return api('/api/chat', {
         method: 'POST',
         body: {
@@ -636,7 +636,7 @@ async function sendChatMessage(profileId, message) {
             message,
             ...clientContext
         },
-        timeout: 90000  // 90 秒
+        timeout: 200000  // 200 秒，覆盖后端最大重试时间 (3 次 * 60 秒 + 退避等待)
     });
 }
 
@@ -653,7 +653,8 @@ async function clearChatHistory(profileId) {
 async function retryFailedMessage(messageId) {
     return api('/api/chat/retry', {
         method: 'POST',
-        body: JSON.stringify({ message_id: messageId })
+        body: JSON.stringify({ message_id: messageId }),
+        timeout: 200000  // 200 秒，与 sendChatMessage 保持一致
     });
 }
 
