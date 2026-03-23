@@ -117,6 +117,9 @@ TABLE_SCHEMAS = {
         role TEXT NOT NULL,
         content TEXT NOT NULL,
         emotional_tags TEXT,
+        is_failed BOOLEAN DEFAULT FALSE,
+        error_message TEXT,
+        parent_id INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
@@ -771,7 +774,7 @@ def get_chat_history(user_id: int, profile_id: int, limit: int = 50) -> List[Dic
         if USE_POSTGRES:
             cursor = db.cursor()
             cursor.execute("""
-                SELECT id, role, content, created_at
+                SELECT id, role, content, created_at, is_failed, error_message, parent_id
                 FROM chat_messages
                 WHERE user_id = %s AND profile_id = %s
                 ORDER BY created_at ASC
@@ -784,7 +787,7 @@ def get_chat_history(user_id: int, profile_id: int, limit: int = 50) -> List[Dic
             return result
         else:
             rows = db.execute("""
-                SELECT id, role, content, created_at
+                SELECT id, role, content, created_at, is_failed, error_message, parent_id
                 FROM chat_messages
                 WHERE user_id = ? AND profile_id = ?
                 ORDER BY created_at ASC
@@ -835,6 +838,142 @@ def delete_message(user_id: int, profile_id: int, message_id: int) -> bool:
             )
             db.commit()
             return cursor.rowcount > 0
+
+
+def mark_message_as_failed(
+    user_id: int,
+    profile_id: int,
+    message_id: int,
+    error_message: str
+) -> bool:
+    """Mark a message as failed with error message."""
+    with get_db() as db:
+        if USE_POSTGRES:
+            cursor = db.cursor()
+            cursor.execute(
+                """
+                UPDATE chat_messages
+                SET is_failed = TRUE, error_message = %s
+                WHERE id = %s AND user_id = %s AND profile_id = %s
+                """,
+                (error_message, message_id, user_id, profile_id)
+            )
+            db.commit()
+            affected = cursor.rowcount
+            cursor.close()
+            return affected > 0
+        else:
+            cursor = db.execute(
+                """
+                UPDATE chat_messages
+                SET is_failed = 1, error_message = ?
+                WHERE id = ? AND user_id = ? AND profile_id = ?
+                """,
+                (error_message, message_id, user_id, profile_id)
+            )
+            db.commit()
+            return cursor.rowcount > 0
+
+
+def create_failed_assistant_message(
+    user_id: int,
+    profile_id: int,
+    content: str,
+    error_message: str,
+    parent_id: Optional[int] = None
+) -> int:
+    """Create a failed assistant message for retry."""
+    with get_db() as db:
+        if USE_POSTGRES:
+            cursor = db.cursor()
+            cursor.execute(
+                """
+                INSERT INTO chat_messages (user_id, profile_id, role, content, is_failed, error_message, parent_id)
+                VALUES (%s, %s, 'assistant', %s, TRUE, %s, %s)
+                RETURNING id
+                """,
+                (user_id, profile_id, content, error_message, parent_id)
+            )
+            db.commit()
+            msg_id = cursor.fetchone()[0]
+            cursor.close()
+            return msg_id
+        else:
+            cursor = db.execute(
+                """
+                INSERT INTO chat_messages (user_id, profile_id, role, content, is_failed, error_message, parent_id)
+                VALUES (?, ?, 'assistant', ?, 1, ?, ?)
+                """,
+                (user_id, profile_id, content, error_message, parent_id)
+            )
+            db.commit()
+            return cursor.lastrowid
+
+
+def clear_message_failed_status(
+    user_id: int,
+    profile_id: int,
+    message_id: int
+) -> bool:
+    """Clear failed status from a message after successful retry."""
+    with get_db() as db:
+        if USE_POSTGRES:
+            cursor = db.cursor()
+            cursor.execute(
+                """
+                UPDATE chat_messages
+                SET is_failed = FALSE, error_message = NULL
+                WHERE id = %s AND user_id = %s AND profile_id = %s
+                """,
+                (message_id, user_id, profile_id)
+            )
+            db.commit()
+            affected = cursor.rowcount
+            cursor.close()
+            return affected > 0
+        else:
+            cursor = db.execute(
+                """
+                UPDATE chat_messages
+                SET is_failed = 0, error_message = NULL
+                WHERE id = ? AND user_id = ? AND profile_id = ?
+                """,
+                (message_id, user_id, profile_id)
+            )
+            db.commit()
+            return cursor.rowcount > 0
+
+
+def get_failed_message(
+    user_id: int,
+    message_id: int
+) -> Optional[Dict[str, Any]]:
+    """Get a failed message by ID for retry."""
+    with get_db() as db:
+        if USE_POSTGRES:
+            cursor = db.cursor()
+            cursor.execute(
+                """
+                SELECT id, user_id, profile_id, role, content, emotional_tags, error_message, parent_id
+                FROM chat_messages
+                WHERE id = %s AND user_id = %s AND is_failed = TRUE
+                """,
+                (message_id, user_id)
+            )
+            row = cursor.fetchone()
+            result = _fetch_one_dict(cursor, row)
+            cursor.close()
+            return result
+        else:
+            row = db.execute(
+                """
+                SELECT id, user_id, profile_id, role, content, emotional_tags, error_message, parent_id
+                FROM chat_messages
+                WHERE id = ? AND user_id = ? AND is_failed = 1
+                """,
+                (message_id, user_id)
+            ).fetchone()
+            return dict(row) if row else None
 
 
 # ============== Emotional State Operations ==============

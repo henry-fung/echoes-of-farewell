@@ -1641,6 +1641,56 @@ body {
     text-align: right;
 }
 
+/* 失败消息样式 */
+.message.message-failed .message-content {
+    background: linear-gradient(135deg, #FFF5F5 0%, #FFE8E8 100%);
+    border: 1px solid var(--danger);
+    border-left: 3px solid var(--danger);
+}
+
+.message.message-failed {
+    opacity: 0.85;
+}
+
+.retry-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    margin-top: 0.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-md);
+    color: var(--primary);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+    background: var(--primary-pale);
+    border-color: var(--primary-dark);
+    color: var(--primary-dark);
+}
+
+.retry-button span {
+    font-size: 1rem;
+    animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.message.message-failed.retrying .retry-button span {
+    animation: rotate 1s linear infinite;
+}
+
+.message.message-failed.retrying {
+    opacity: 0.6;
+}
+
 .chat-input-area {
     padding: 1rem 1.5rem;
     border-top: 1px solid var(--gray-200);

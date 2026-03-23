@@ -25,9 +25,11 @@ except ImportError:
 from database import (
     create_user, verify_user, get_user_by_id,
     create_profile, update_profile, get_profile_by_id, get_profiles, delete_profile,
-    add_message, get_chat_history, clear_chat_history,
+    add_message, get_chat_history, clear_chat_history, delete_message,
     get_emotional_state, create_or_update_emotional_state, log_emotional_history,
     get_emotional_history, add_message_with_emotion,
+    mark_message_as_failed, create_failed_assistant_message,
+    clear_message_failed_status, get_failed_message,
     get_user_consent, update_user_consent,
     get_last_survey_date, submit_survey,
     verify_invite_code, use_invite_code, register_user_with_invite_code,
@@ -1542,6 +1544,14 @@ async def chat(data: ChatMessage, user_id: int = Depends(get_current_user)):
     except Exception as e:
         import traceback
         traceback.print_exc()
+        # 保存失败的 assistant 消息（用于前端显示重试按钮）
+        error_msg = f"AI 服务暂时不可用：{str(e)}"
+        create_failed_assistant_message(
+            user_id=user_id,
+            profile_id=data.profile_id,
+            content=error_msg,
+            error_message=str(e)
+        )
         raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
 
 
@@ -1573,6 +1583,125 @@ async def clear_history(
     
     clear_chat_history(user_id, profile_id)
     return {"success": True}
+
+
+@app.post("/api/chat/retry")
+async def retry_message(
+    request: dict,
+    user_id: int = Depends(get_current_user)
+):
+    """Retry a failed assistant message."""
+    message_id = request.get("message_id")
+    if not message_id:
+        raise HTTPException(status_code=400, detail="message_id is required")
+
+    # Get the failed message
+    failed_msg = get_failed_message(user_id, message_id)
+    if not failed_msg:
+        raise HTTPException(status_code=404, detail="Failed message not found")
+
+    profile_id = failed_msg["profile_id"]
+
+    # Verify profile belongs to user
+    profile = get_profile_by_id(profile_id, user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # Get the user message that triggered this (find previous user message)
+    history = get_chat_history(user_id, profile_id, limit=20)
+    user_msg = None
+    for msg in reversed(history):
+        if msg["id"] < message_id and msg["role"] == "user":
+            user_msg = msg
+            break
+
+    if not user_msg:
+        raise HTTPException(status_code=400, detail="Could not find original user message")
+
+    # Rebuild messages for LLM
+    from llm_provider import LLMFactory
+    provider = get_llm_provider()
+
+    # Build system prompt
+    state = emotion_engine.get_or_create_state(user_id, profile_id)
+    analysis = emotion_engine.analyze_text(user_msg["content"], profile.get("language", "zh-CN"))
+    strategy_params = emotion_engine.calculate_strategy_params(state)
+
+    client_context = {}  # No context for retry
+    base_prompt = build_system_prompt(profile, client_context)
+    emotion_prompt = emotion_engine.generate_emotion_prompt(strategy_params, profile)
+    enhanced_system_prompt = f"{base_prompt}\n\n{emotion_prompt}"
+
+    # Build messages
+    messages = [{"role": "system", "content": enhanced_system_prompt}]
+
+    # Add chat history before the user message
+    for msg in history:
+        if msg["id"] < user_msg["id"]:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+
+    # Add the user message
+    messages.append({"role": "user", "content": user_msg["content"]})
+
+    try:
+        # Generate response
+        response_text = provider.generate(messages)
+
+        # Check length
+        max_len = strategy_params["max_length"]
+        if len(response_text) > max_len:
+            truncated = response_text[:max_len]
+            last_period = max(truncated.rfind('.'), truncated.rfind('.').rfind('!'), truncated.rfind('!'))
+            if last_period > max_len * 0.7:
+                response_text = truncated[:last_period+1]
+            else:
+                response_text = truncated + "..."
+
+        # Update the failed message with successful response
+        with get_db() as db:
+            cursor = db.cursor()
+            cursor.execute(
+                """
+                UPDATE chat_messages
+                SET content = %s, is_failed = FALSE, error_message = NULL
+                WHERE id = %s AND user_id = %s AND profile_id = %s
+                """,
+                (response_text, message_id, user_id, profile_id)
+            )
+            db.commit()
+            cursor.close()
+
+        # Update emotional state
+        create_or_update_emotional_state(
+            user_id=user_id,
+            profile_id=profile_id,
+            mood_index=state.mood_index,
+            decay_rate=state.decay_rate,
+            dominant_stage=state.dominant_stage,
+            stage_probs=state.stage_probabilities,
+            stability_score=state.stability_score,
+            risk_level=state.risk_level,
+            negative_streak=state.negative_streak,
+            total_interactions=state.total_interactions,
+            recovery_phase=state.recovery_phase,
+            memory_intimacy_weight=state.memory_intimacy_weight,
+            strong_negative_events=state.strong_negative_events,
+            allow_proactive=state.allow_proactive,
+            next_proactive_time=state.next_proactive_time,
+            valence=state.valence,
+            arousal=state.arousal,
+            behavior_counts=state.behavior_counts,
+            extracted_keywords=state.extracted_keywords
+        )
+
+        return {
+            "success": True,
+            "response": response_text,
+            "message_id": message_id
+        }
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Retry failed: {str(e)}")
 
 
 # ============== Emotional State API ==============

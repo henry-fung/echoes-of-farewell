@@ -74,6 +74,9 @@ const translations = {
         'type_message': '想说什么...',
         'send': '发送',
         'clear_confirm': '确定要清空与这位亲人的聊天记录吗？',
+        'retry': '重试',
+        'message_failed': '消息发送失败',
+        'click_to_retry': '点击重试',
         // Chat List Page
         'my_conversations': '我的对话',
         'select_chat_desc': '选择一个亲人继续对话',
@@ -296,6 +299,9 @@ const translations = {
         'type_message': 'Type a message...',
         'send': 'Send',
         'clear_confirm': 'Are you sure you want to clear the chat history with this loved one?',
+        'retry': 'Retry',
+        'message_failed': 'Message failed',
+        'click_to_retry': 'Click to retry',
         // Survey Modal
         'survey_title': 'Emotional State Survey',
         'survey_desc': 'To better understand your condition and provide more suitable companionship, please take a few minutes to answer the following questions.',
@@ -641,6 +647,13 @@ async function getChatHistory(profileId) {
 async function clearChatHistory(profileId) {
     return api(`/api/chat/history?profile_id=${profileId}`, {
         method: 'DELETE'
+    });
+}
+
+async function retryFailedMessage(messageId) {
+    return api('/api/chat/retry', {
+        method: 'POST',
+        body: JSON.stringify({ message_id: messageId })
     });
 }
 
@@ -1530,67 +1543,64 @@ async function loadChat() {
 function renderMessages(messages) {
     const container = document.getElementById('chatMessages');
     container.innerHTML = '';
-    
+
     messages.forEach(msg => {
-        addMessageToUI(msg.role, msg.content, msg.created_at);
+        // 检查是否是失败消息
+        if (msg.role === 'assistant' && msg.is_failed) {
+            addMessageToUI('assistant', msg.content, msg.created_at, msg);
+        } else {
+            addMessageToUI(msg.role, msg.content, msg.created_at);
+        }
     });
-    
+
     scrollToBottom();
 }
 
 // 追踪已添加的消息，防止重复
 const addedMessages = new Set();
 
-function addMessageToUI(role, content, time = null) {
-    const container = document.getElementById('chatMessages');
-    
-    // 生成消息唯一标识（基于角色、内容和当前分钟）
+function addMessageToUI(role, content, time = null, msgData = null) {
+    const container = document.getElementById("chatMessages");
     const messageId = `${role}-${content}-${new Date().getMinutes()}`;
-    
-    // 检查是否已添加过
-    if (addedMessages.has(messageId)) {
-        console.log('[addMessageToUI] Duplicate message blocked:', messageId);
-        return;
-    }
-    
-    // 记录已添加的消息
+    if (addedMessages.has(messageId)) { console.log("[addMessageToUI] Duplicate message blocked:", messageId); return; }
     addedMessages.add(messageId);
-    
-    // 清理旧记录（保留最近50条）
-    if (addedMessages.size > 50) {
-        const firstKey = addedMessages.values().next().value;
-        addedMessages.delete(firstKey);
-    }
-    
-    const messageEl = document.createElement('div');
+    if (addedMessages.size > 50) { const firstKey = addedMessages.values().next().value; addedMessages.delete(firstKey); }
+    const messageEl = document.createElement("div");
     messageEl.className = `message ${role}`;
-    
-    const avatar = document.createElement('img');
-    avatar.className = 'message-avatar';
-    if (role === 'user') {
-        avatar.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23e5e7eb"/><text x="50" y="60" text-anchor="middle" font-size="40" fill="%236b7280">😊</text></svg>';
+    if (msgData && msgData.is_failed) {
+        messageEl.classList.add("message-failed");
+        messageEl.dataset.messageId = msgData.id;
+    }
+    const avatar = document.createElement("img");
+    avatar.className = "message-avatar";
+    if (role === "user") {
+        avatar.src = "data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"50\" fill=\"%23e5e7eb\"/><text x=\"50\" y=\"60\" text-anchor=\"middle\" font-size=\"40\" fill=\"%236b7280\">😊</text></svg>";
     } else {
         const profilePhoto = state.currentProfile?.photo_path;
-        avatar.src = profilePhoto || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23e0e7ff"/><text x="50" y="60" text-anchor="middle" font-size="40" fill="%236366f1">👤</text></svg>';
+        avatar.src = profilePhoto || "data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"50\" fill=\"%23e0e7ff\"/><text x=\"50\" y=\"60\" text-anchor=\"middle\" font-size=\"40\" fill=\"%236366f1\">👤</text></svg>";
     }
-    
-    const contentWrapper = document.createElement('div');
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
+    const contentWrapper = document.createElement("div");
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "message-content";
     contentDiv.textContent = content;
-    
-    const timeDiv = document.createElement('div');
-    timeDiv.className = 'message-time';
-    timeDiv.textContent = time ? new Date(time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-    
+    if (msgData && msgData.is_failed) {
+        const retryBtn = document.createElement("button");
+        retryBtn.className = "retry-button";
+        retryBtn.innerHTML = `<span>🔄</span> ${t("retry")}`;
+        retryBtn.onclick = () => handleRetryMessage(msgData.id);
+        contentWrapper.appendChild(retryBtn);
+    }
+    const timeDiv = document.createElement("div");
+    timeDiv.className = "message-time";
+    timeDiv.textContent = time ? new Date(time).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
     contentWrapper.appendChild(contentDiv);
     contentWrapper.appendChild(timeDiv);
     messageEl.appendChild(avatar);
     messageEl.appendChild(contentWrapper);
     container.appendChild(messageEl);
-    
     scrollToBottom();
 }
+
 
 function showTypingIndicator() {
     const container = document.getElementById('chatMessages');
@@ -1716,6 +1726,39 @@ async function sendMessage() {
         // 重置发送标志
         isSending = false;
         console.log('[sendMessage] Reset isSending flag');
+    }
+}
+
+// 处理重试失败消息
+async function handleRetryMessage(messageId) {
+    const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (messageEl) {
+        messageEl.classList.add('retrying');
+    }
+
+    try {
+        const result = await retryFailedMessage(messageId);
+        if (result.success && messageEl) {
+            // 更新消息内容
+            const contentDiv = messageEl.querySelector('.message-content');
+            if (contentDiv) {
+                contentDiv.textContent = result.response;
+            }
+            // 移除失败样式和重试按钮
+            messageEl.classList.remove('message-failed', 'retrying');
+            delete messageEl.dataset.messageId;
+            // 移除重试按钮
+            const retryBtn = messageEl.querySelector('.retry-button');
+            if (retryBtn) {
+                retryBtn.remove();
+            }
+        }
+    } catch (err) {
+        console.error('[handleRetryMessage] Error:', err);
+        if (messageEl) {
+            messageEl.classList.remove('retrying');
+        }
+        alert('重试失败，请稍后再试');
     }
 }
 
