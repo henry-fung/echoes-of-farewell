@@ -750,8 +750,8 @@ def get_festival(month: int, day: int, language: str = "zh-CN", year: int = None
         # Convert current date to lunar
         solar = Solar(year, month, day)
         lunar = Converter.Solar2Lunar(solar)
-        lunar_month = lunar.Month
-        lunar_day = lunar.Day
+        lunar_month = lunar.month  # 注意：是小写 month，不是 Month
+        lunar_day = lunar.day      # 注意：是小写 day，不是 Day
         
         # Lunar New Year (正月初一)
         if lunar_month == 1 and lunar_day == 1:
