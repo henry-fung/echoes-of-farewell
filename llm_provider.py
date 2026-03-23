@@ -251,7 +251,10 @@ class CustomProvider(LLMProvider):
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.model = model
 
-    # @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10)
+    )
     def generate(self, messages: List[Dict[str, str]], json_mode: bool = False) -> str:
         kwargs = {
             "model": self.model,
@@ -265,7 +268,11 @@ class CustomProvider(LLMProvider):
 
         response = self.client.chat.completions.create(**kwargs)
         return response.choices[0].message.content
-    
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10)
+    )
     def generate_with_image(self, system_prompt: str, image_url: str, text: str) -> str:
         """Generate a response using vision-capable model (e.g., Kimi-VL, GPT-4V).
         
