@@ -937,16 +937,18 @@ def create_or_update_emotional_state(
 
                 cursor.execute(sql, params)
             else:
-                cursor.execute("""
-                    INSERT INTO emotional_states (
-                        user_id, profile_id, mood_index, decay_rate, dominant_stage,
-                        recovery_phase, memory_intimacy_weight, strong_negative_events, allow_proactive,
-                        stage_denial, stage_anger, stage_bargaining, stage_depression, stage_acceptance,
-                        stability_score, risk_level, negative_streak, total_interactions,
-                        valence, arousal, behavior_counts, extracted_keywords,
-                        next_proactive_time
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (
+                # Build INSERT SQL dynamically based on whether next_proactive_time is provided
+                base_columns = (
+                    "user_id, profile_id, mood_index, decay_rate, dominant_stage, "
+                    "recovery_phase, memory_intimacy_weight, strong_negative_events, allow_proactive, "
+                    "stage_denial, stage_anger, stage_bargaining, stage_depression, stage_acceptance, "
+                    "stability_score, risk_level, negative_streak, total_interactions, "
+                    "valence, arousal, behavior_counts, extracted_keywords"
+                )
+                base_values = (
+                    "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s"
+                )
+                params = [
                     user_id, profile_id, mood_index, decay_rate, dominant_stage,
                     recovery_phase, memory_intimacy_weight, strong_negative_events, 1 if allow_proactive else 0,
                     stage_probs.get("denial", 0.2), stage_probs.get("anger", 0.2),
@@ -954,9 +956,24 @@ def create_or_update_emotional_state(
                     stage_probs.get("acceptance", 0.2),
                     stability_score, risk_level, negative_streak, total_interactions,
                     valence, arousal,
-                    json.dumps(behavior_counts), json.dumps(extracted_keywords),
-                    next_proactive_time
-                ))
+                    json.dumps(behavior_counts), json.dumps(extracted_keywords)
+                ]
+
+                if next_proactive_time:
+                    sql = f"""
+                        INSERT INTO emotional_states (
+                            {base_columns}, next_proactive_time
+                        ) VALUES ({base_values}, %s)
+                    """
+                    params.append(next_proactive_time)
+                else:
+                    sql = f"""
+                        INSERT INTO emotional_states (
+                            {base_columns}
+                        ) VALUES ({base_values})
+                    """
+
+                cursor.execute(sql, params)
 
             db.commit()
             cursor.close()
