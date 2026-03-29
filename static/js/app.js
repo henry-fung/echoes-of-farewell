@@ -2282,9 +2282,27 @@ async function submitConsent() {
         document.getElementById('consentModal').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
 
-        // Load profiles and show app
+        // Load profiles first
         await loadProfiles();
-        showPage('profiles');
+
+        // Restore last visited page and selected profile (same logic as initApp)
+        const lastPage = sessionStorage.getItem('lastPage') || 'profiles';
+        const savedProfileId = sessionStorage.getItem('currentProfileId');
+
+        if (savedProfileId && state.profiles.length > 0) {
+            const savedProfile = state.profiles.find(p => p.id == savedProfileId);
+            if (savedProfile) {
+                state.currentProfile = savedProfile;
+                state.currentProfileId = parseInt(savedProfileId);
+            }
+        }
+
+        // Restore last page (chat or profiles)
+        if (lastPage === 'chat' && state.currentProfile) {
+            showPage('chat');
+        } else {
+            showPage('profiles');
+        }
 
         // Check survey status after consent
         await checkSurveyStatus();
